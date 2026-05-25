@@ -1,7 +1,7 @@
 # github-safe-publish v2 设计文档
 
 日期：2026-05-25
-状态：Draft
+状态：Final (v0.6.0 delivered)
 
 ## 1. 项目定位
 
