@@ -1,6 +1,6 @@
 ---
 name: github-safe-publish
-version: "0.5.0"
+version: "0.6.0"
 description: |
   将本地 Git 项目安全地发布到 GitHub 公开仓库。包含两层脱敏扫描
   （确定性规则 + AI 语义）、自动修复、备份回滚、仓库创建、SEO 优化。

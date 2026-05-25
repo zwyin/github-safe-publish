@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-05-25
+
+### Added
+
+- `scripts/convert.sh`: multi-platform skill converter (Cursor .mdc, Windsurf .windsurfrules, OpenCode AGENTS.md)
+- Cursor output: splits SKILL.md into core workflow + optional modules (`.cursor/rules/*.mdc` with YAML frontmatter)
+- Windsurf output: single `.windsurfrules` file
+- OpenCode output: single `AGENTS.md` file
+- `tests/test_convert.py`: 13 tests validating all platform conversions
+
 ## [0.5.0] - 2026-05-25
 
 ### Added
