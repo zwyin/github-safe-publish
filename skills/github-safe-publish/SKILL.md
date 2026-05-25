@@ -63,19 +63,650 @@ allowed-tools:
 
 ## Step 1: 前置检查 + 参数确认（集中交互 #1）
 
-<!-- 迭代 1 实现完整内容 -->
+所有前置检查和参数决策集中在一次交互中完成。任何一项阻断条件不满足则停在当前步骤。
+
+### 1.1 自动检查（无交互）
+
+按顺序执行以下检查，仅记录结果，不做交互：
+
+```
+检查项：
+
+1. 当前目录是 git 仓库？
+   命令：git rev-parse --is-inside-work-tree
+   ├── 成功 → is_git_repo = true，继续
+   └── 失败 → is_git_repo = false，标记"需要在 1.2 中询问初始化"
+
+2. git 仓库至少有 1 个 commit？
+   命令：git rev-parse HEAD
+   ├── 成功 → has_commit = true，继续
+   └── 失败 → 阻断：输出"仓库没有任何 commit，需要至少一次 commit 才能创建备份分支和回滚"，停止流程
+
+3. gh CLI 是否可用？
+   命令：gh auth status 2>&1
+   ├── 成功 → gh_available = true，提取用户名（gh api user --jq .login）
+   └── 失败 → gh_available = false，记录原因（未安装 / 未登录）
+   注意：gh CLI 可用不是必须条件，用户可以选择手动推送
+```
+
+自动检查结果汇总格式：
+```
+前置检查结果：
+  Git 仓库：✓
+  至少 1 个 commit：✓（42 commits on master）
+  gh CLI：✓（已登录 as zwyin）
+  或
+  gh CLI：✗（未安装。可选：手动推送模式）
+```
+
+### 1.2 集中交互确认
+
+将以下决策合并为一次或连续的 AskUserQuestion 调用。问题数量根据上下文动态调整（最多 3 个问题）。
+
+**问题 1：工作模式**（必问）
+
+```
+AskUserQuestion: 请确认工作模式
+
+  A) 完整流程：脱敏扫描 → 自动修复 → 发布到 GitHub
+     （适合准备公开发布的项目）
+  B) 仅扫描：只做脱敏检查，输出扫描报告，不修复不发布（--scan-only）
+     （适合先了解项目中哪些内容需要处理）
+  C) 模拟运行：扫描出报告，展示推荐修复方案，但不做任何实际修改（--dry-run）
+     （适合预览完整流程，确认修复策略）
+```
+
+如果用户在问题 1 选择了完整流程（选项 A），且调用时带了 `--seo` 或 `--ci` 参数，追加确认：
+
+```
+AskUserQuestion: 附加模块确认
+
+  检测到参数：--seo --ci
+
+  A) 完整流程 + SEO 优化（README 优化、topics、badges）
+  B) 完整流程 + CI 生成（自动检测并生成 .github/workflows/test.yml）
+  C) 完整流程 + SEO + CI（全部功能）
+  D) 仅完整流程，不加附加模块
+```
+
+**参数冲突校验**（在任何交互前先检查，冲突直接报错退出）：
+
+```
+无效组合检测：
+  --scan-only + --seo  → 报错："--scan-only 不能与 --seo 组合。SEO 优化只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
+  --scan-only + --ci   → 报错："--scan-only 不能与 --ci 组合。CI 生成只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
+  --dry-run + --seo    → 报错："--dry-run 不能与 --seo 组合。SEO 优化需要实际推送，模拟模式不做推送。请使用完整流程模式。"
+  --dry-run + --ci     → 报错："--dry-run 不能与 --ci 组合。CI 生成需要实际推送，模拟模式不做推送。请使用完整流程模式。"
+  --scan-only + --dry-run → 报错："--scan-only 和 --dry-run 不能同时使用。--scan-only 只输出扫描报告；--dry-run 在报告基础上还展示推荐修复方案。"
+```
+
+**问题 2：推送方式**（仅完整流程模式下显示）
+
+情况 A — gh CLI 可用：
+```
+AskUserQuestion: 推送方式
+
+  A) 使用 gh CLI 自动创建仓库并推送（推荐）
+     自动完成：创建仓库 → 添加 remote → git push
+  B) 我自己手动推送，只帮我做好脱敏和本地准备
+     完成脱敏后输出手动推送指引，不执行任何推送操作
+```
+
+情况 B — gh CLI 不可用：
+```
+AskUserQuestion: 推送方式（gh CLI 不可用：未安装/未登录）
+
+  A) 我自己手动推送
+     完成脱敏后输出手动推送指引
+  B) 我先去安装/登录 gh CLI，等会再来
+     中止当前流程，提示安装命令：
+       macOS: brew install gh && gh auth login
+       Linux: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+```
+
+**问题 3：非 git 目录的处理**（仅在 is_git_repo = false 时显示）
+
+```
+AskUserQuestion: 当前目录不是 Git 仓库
+
+  A) 帮我初始化后继续
+     执行：git init → 生成标准 .gitignore（覆盖 Python/Node/macOS/IDE 常见忽略项）→ git add . → git commit -m "init: initial commit"
+  B) 我先自己备份和初始化，回来再用
+     中止当前流程，提示用户准备好后重新调用
+```
+
+标准 .gitignore 模板（选项 A 时生成）：
+```gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Node
+node_modules/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 环境变量和密钥
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+```
+
+### 1.3 交互结果汇总
+
+所有问题确认完成后，输出配置摘要：
+
+```
+━━━ 配置确认 ━━━
+工作模式：完整流程
+推送方式：gh CLI 自动推送（zwyin）
+附加模块：SEO + CI
+───────────────
+目标仓库：待扫描后确认（Step 5）
+备份分支：pre-publish-backup（Step 2 创建）
+━━━━━━━━━━━━━━━
+
+确认以上配置，开始执行？
+```
+
+用户确认后进入 Step 2。用户否定则回到 1.2 重新选择。
 
 ## Step 2: 创建备份分支
 
-<!-- 迭代 1 实现完整内容 -->
+在任何修改之前创建回滚点。**仅在完整流程模式下执行**（`--scan-only` 和 `--dry-run` 跳过此步骤）。
+
+跳过原因：`--scan-only` 和 `--dry-run` 设计为纯只读操作，不修改任何文件或分支，子 agent 不被授予写入工具权限，因此无需备份。
+
+### 2.1 创建流程
+
+```bash
+# 删除已有的同名备份分支（重新运行会覆盖上次备份，这是预期行为）
+git branch -D pre-publish-backup 2>/dev/null || true
+
+# 检查工作区是否有未提交内容
+if git diff --quiet HEAD && git diff --quiet --cached; then
+    # 工作区干净，直接在 HEAD 上创建备份分支
+    git branch pre-publish-backup HEAD
+else
+    # 有未提交内容，先 stash 再创建分支
+    git stash push -m "pre-publish-stash-$(date +%Y%m%d%H%M%S)" --include-untracked
+    git branch pre-publish-backup HEAD
+    # 恢复工作区
+    git stash pop || {
+        echo "WARNING: stash pop 产生冲突，无法自动恢复工作区。"
+        echo "冲突文件已保留在 stash 中。处理方案："
+        echo "  1. 手动解决冲突后 git stash drop"
+        echo "  2. 或放弃 stash 内容 git stash drop"
+        echo ""
+        echo "备份分支 pre-publish-backup 已基于 HEAD 创建（不含未提交内容）。"
+        # 冲突时丢弃 stash，使用 HEAD 状态作为备份点
+        git stash drop
+    }
+fi
+```
+
+### 2.2 验证
+
+```bash
+# 确认备份分支存在且指向正确的 commit
+git rev-parse --verify pre-publish-backup
+echo "备份分支 pre-publish-backup 指向: $(git log -1 --oneline pre-publish-backup)"
+```
+
+### 2.3 规则
+
+- **分支名固定**：`pre-publish-backup`，不可自定义
+- **删除后重建**：如果该分支已存在（上次运行的残留），先删除再创建
+- **不推送**：备份分支仅存在于本地，不推送到任何远程仓库
+- **覆盖提醒**：重新运行会覆盖上次的备份点。备份的是"最近一次发布前的状态"，非累积
+- **回滚方式**：`git reset --hard pre-publish-backup`（硬回滚到备份点的完整状态）
+- **清理时机**：推送完成并验证后（Step 6），告知用户可以安全删除该分支
+
+### 2.4 输出
+
+```
+备份分支已创建：pre-publish-backup → <commit-hash> <commit-message>
+如需回滚：git reset --hard pre-publish-backup
+```
 
 ## Step 3: 脱敏扫描（两层架构）
 
-<!-- 迭代 1 实现完整内容 -->
+采用两层架构：第 1 层确定性规则扫描覆盖已知模式，第 2 层 AI 语义扫描补充规则无法覆盖的语义泄露。
+两层独立运行，结果合并后输出统一报告。
+
+### 第 1 层：确定性规则扫描
+
+**扫描范围**：
+
+```bash
+# 获取所有 git 跟踪文件
+git ls-files
+
+# 排除规则：
+# 1. 二进制文件（图片/视频/编译输出/字体）— 无法以 UTF-8 解码的文件跳过
+# 2. .git 目录内部
+# 3. 子模块（由用户自行处理）
+# 4. 单文件 > 10MB 跳过（避免性能问题）
+
+# 可选警告：检查 .gitignore 中列出但仍存在于工作区的敏感文件
+git ls-files --others --ignored --exclude-standard | grep -iE '\.env$|\.pem$|\.key$|\.db$|credentials'
+```
+
+**五个扫描维度**：
+
+| 维度 | 代号 | 说明 | 规则数 |
+|------|------|------|--------|
+| A. 密钥/凭证 | KEY | API Key、Token、Secret 等 50+ 确定性模式 + 熵值辅助 | 58 |
+| B. PII（个人身份信息） | PII | 邮箱、手机号、身份证号、银行卡号等 | 8 |
+| C. 内部基础设施 | INF | 内网 IP、内部域名、本地文件路径、VPN 配置 | 6 |
+| D. 文件黑名单 | FILE | .env、.pem、.key、.db 等不应公开的文件类型 | 12 |
+| E. Git 历史 | GIT | commit message 中的敏感信息、已删除文件残留、author email 泄露 | 4 |
+
+> 完整正则定义见 `docs/scanning-rules.md`。以下为各维度概要。
+
+**A. 密钥/凭证（正则 + 熵值）**
+
+覆盖 58 条规则，主要服务商包括：
+
+- 云服务：AWS（access token / secret key / Bedrock）、Azure（AD client secret）、GCP（API key）、Alibaba
+- 代码平台：GitHub（PAT / App Token / Fine-grained PAT / OAuth / Refresh Token）、GitLab（PAT / Deploy Token / Runner Token）
+- AI 服务：OpenAI、Anthropic、HuggingFace、Cohere、Perplexity
+- 通信：Slack（Bot / User / Webhook）、Twilio、SendGrid、Telegram、Discord
+- 支付：Stripe、Square、Plaid、Flutterwave
+- 运维：Datadog、Sentry、New Relic、Grafana、Snyk、Databricks、Dynatrace、Pulumi、Artifactory、HashiCorp Terraform
+- 其他：npm、PyPI、RubyGems、Heroku、Shopify、Postman、Notion、Atlassian（Jira/Confluence）、Linear、Mailchimp、Okta、Cloudflare、Mailgun、Algolia、Facebook
+
+熵值检测（Shannon entropy）：阈值 4.5，仅在已知密钥关键字附近触发，不全局扫描所有字符串以避免 Base64/哈希值误报。`generic-api-key` 规则匹配后，熵值 >= 4.5 升级为 CRITICAL，< 4.5 降为 WARNING。
+
+**B. PII（正则）**
+
+- 邮箱：非 GitHub noreply / placeholder 的个人邮箱
+- 中国大陆手机号：`1[3-9]\d{9}`
+- 身份证号：18 位格式（CRITICAL）
+- 银行卡号：中国银行卡号前缀（CRITICAL）
+- 美国社保号 SSN（CRITICAL）
+- 信用卡号：含 Luhn 校验（CRITICAL）
+- 硬编码密码：password/passwd/pwd 赋值语句（WARNING）
+
+**C. 内部基础设施（正则）**
+
+- 内网 IP：`10.x.x.x`、`172.16-31.x.x`、`192.168.x.x`
+- 内部域名：`.local`、`.internal`、`.lan`、`.corp`、`.intra`、`.office`、`.home`、`.nas` 后缀
+- 硬编码本地路径：`/Users/xxx/`、`C:\Users\xxx\`、`/home/xxx/`
+- 内部服务 URL：含 nas/vpn/internal 关键字的 URL
+- VPN/Proxy 配置
+
+**D. 文件黑名单**
+
+按文件路径匹配，包含：
+- 凭证文件：`.env`、`.pem`、`.key`、`.p12`、`.pfx`、`.jks`、credentials.*、`.netrc`、`.pypirc`
+- 数据文件：`.sql`、`.db`、`.sqlite`、`.dump`
+- IDE 配置：`.idea/`、`.vscode/settings.json`
+- 系统文件：`.DS_Store`、`Thumbs.db`
+- 日志/缓存：`.log`、`__pycache__/`、`node_modules/`
+- Terraform 状态：`.tfstate`
+
+同时检查 `.gitignore` 充分性：对黑名单中的文件类型检查是否有对应忽略规则。
+
+**E. Git 历史扫描**
+
+- Author email 泄露：`git log --all --format='%ae' | sort -u`，排除 GitHub noreply 地址
+- 历史中添加过的敏感文件：`git log --all --diff-filter=A --summary` 搜索 `.env`、`.pem`、`.key` 等
+- 已删除的敏感文件残留：`git log --all --diff-filter=D --summary`，内容仍可通过 git 历史恢复
+- 大文件：`git rev-list --objects --all | git cat-file --batch-check` 筛选 > 1MB 的 blob
+
+**规则扫描执行命令**：
+
+```bash
+# 获取扫描文件列表（排除常见二进制扩展名）
+files=$(git ls-files | grep -v -E '\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|mp4|mp3|zip|tar|gz|exe|dll|so|dylib|pdf)$')
+
+# 对每个文件逐行应用规则扫描（伪代码，实际由 agent 读取文件内容后用正则匹配）
+for file in $files; do
+  # 检查文件大小
+  size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+  if [ "$size" -gt 10485760 ]; then
+    echo "SKIP: $file (> 10MB)"
+    continue
+  fi
+  # 应用维度 A-D 的规则扫描
+done
+
+# Git 历史扫描（维度 E）
+git log --all --format='%ae' | sort -u
+git log --all --diff-filter=A --summary
+git log --all --diff-filter=D --summary
+```
+
+**输出格式**：
+
+结构化报告，每项包含：
+
+```
+[维度] 文件:行号 | 严重级别 | 规则名 | 匹配内容（脱敏显示）
+示例：
+[KEY] src/config.py:42 | CRITICAL | github-pat | ghp_****************************
+[PII] README.md:15 | WARNING | email-address | zhang***@company.com
+[INF] deploy.sh:8 | WARNING | internal-ip-address | 192.168.1.***
+[FILE] .env | CRITICAL | env-files | .env 文件存在
+[GIT] (历史) | WARNING | author-email-leak | zhangwei@internal.corp
+```
+
+### 第 2 层：AI 语义扫描（1-2 轮，独立子 agent 执行）
+
+通过独立子 agent 执行（不共享主对话上下文，隔离敏感信息），补充规则无法覆盖的语义泄露。
+
+**扫描内容**（规则扫描无法覆盖的语义维度）：
+
+- 业务数据泄露：内部项目代号、真实用户数据、订单号、财务数据
+- 可溯源叙事：可通过搜索引擎定位到个人/组织的描述（如"在 XX 公司的 YY 项目中"）
+- 间接推断：文件路径推断内部组织结构、时间戳推断工作节奏、注释推断技术栈
+- 规则扫描误报排除：对第 1 层 WARNING 项进行二次判断，降低误报率
+
+**执行方式**：
+
+使用 `Agent` 工具启动独立子 agent，每个子 agent 接收自包含的扫描 prompt（不依赖主对话上下文）。子 agent 仅被授予 `Read`、`Grep`、`Glob`、`Bash`（只读命令）权限，不可修改任何文件。
+
+**子 agent Prompt 模板**：
+
+```
+你是一个代码安全审计 agent。你的任务是扫描一个即将公开的 Git 项目，
+找出可能泄露敏感信息的语义内容。这是纯只读任务，不要修改任何文件。
+
+=== 项目路径 ===
+{PROJECT_PATH}
+
+=== 你的任务 ===
+
+1. 用 Glob 和 Read 工具浏览项目文件结构
+2. 重点阅读以下文件类型：
+   - README、CHANGELOG、CONTRIBUTING 等文档
+   - 配置文件（YAML/TOML/JSON/INI）
+   - 注释密集的源代码文件
+   - Git commit message（运行 git log --oneline -50）
+3. 识别以下类别的语义泄露：
+   A. 内部项目代号或内部系统名称
+   B. 真实用户数据（姓名、订单号、交易记录）
+   C. 可溯源叙事（能通过搜索引擎定位到具体个人/组织的描述）
+   D. 文件路径中暴露的内部组织结构
+   E. 注释中的内部链接、内部同事姓名
+   F. 时间模式暴露的工作节奏信息
+
+=== 输出格式 ===
+
+每项发现一行，格式：
+[FINDING] 类别 | 文件:行号 | 严重级别(CRITICAL/WARNING) | 内容摘要 | 推荐处理方式
+
+=== 已知排除项（第 1 层已覆盖，你不需要重复检查）===
+- API Key / Token / Secret 的格式化模式
+- 邮箱 / 手机号 / 身份证号等 PII 的标准格式
+- .env / .pem 等文件黑名单
+- 内网 IP / 内部域名等基础设施模式
+
+=== 注意 ===
+- 只报告你确信有泄露风险的内容，宁可漏报不要误报
+- 如果某个内容你觉得可能是敏感的但不确定，标为 WARNING
+- 如果没有发现任何问题，输出：[CLEAN] 未发现语义层面的敏感信息泄露
+```
+
+**收敛判定**：
+
+- 第 1 轮扫描后，将发现项与第 1 层结果合并去重
+- 如果第 1 轮发现新问题，启动第 2 轮（使用不同的子 agent 实例，聚焦第 1 轮发现项的关联区域）
+- 第 2 轮无新发现，或已完成 2 轮，停止扫描
+- 最多 2 轮 AI 扫描
+
+**v1 → v2 架构变更说明**：
+
+v1 采用 5 轮纯 AI 自由扫描，存在两个问题：(1) 每轮 AI 扫描结果不可复现；(2) 规则可覆盖的模式（如 API Key 格式）不应由 AI 判断。v2 改为"规则确定性扫描 + 1-2 轮 AI 语义补充"两层架构，规则层可复现且覆盖率高（58 条密钥规则 + 8 条 PII 规则），AI 只负责规则无法覆盖的语义部分，因此收敛更快，最多 2 轮即可。
+
+**两层结果合并**：
+
+```
+扫描完成。合并第 1 层 + 第 2 层结果：
+
+第 1 层（规则扫描）：
+  CRITICAL: N 项
+  WARNING:  M 项
+
+第 2 层（AI 语义扫描）：
+  新增 CRITICAL: X 项
+  新增 WARNING:  Y 项
+  误报排除（WARNING → SAFE）: Z 项
+
+合并后总计：
+  CRITICAL: N+X 项
+  WARNING:  M+Y-Z 项
+
+详细报告见上方输出。
+准备进入 Step 4 处理。
+```
 
 ## Step 4: 自动修复 + 用户确认
 
-<!-- 迭代 1 实现完整内容 -->
+根据 Step 3 扫描结果分类处理。`--scan-only` 模式跳过此步骤；`--dry-run` 模式输出修复建议但不执行任何修改。
+
+### 结果分类
+
+| 级别 | 含义 | 默认动作 |
+|------|------|----------|
+| **CRITICAL** | 真实密钥、凭证、敏感 PII（身份证、银行卡） | 必须处理，阻塞推送 |
+| **WARNING** | 可能敏感但不确定（内部 IP、个人邮箱、硬编码路径） | 列出给用户判断 |
+| **SAFE** | 示例占位符（`your_xxx`、`REPLACE_ME`）、README 通用描述、`example.com` | 无需处理 |
+
+SAFE 项自动跳过，不进入修复流程。
+
+### CRITICAL 修复选项
+
+对每个 CRITICAL 项，使用 `AskUserQuestion` 逐项询问用户：
+
+```
+AskUserQuestion: 发现 CRITICAL 敏感内容
+
+  [KEY] src/config.py:42 | github-pat | ghp_****************************
+
+  修复方式：
+  A) 自动替换 — 将敏感内容替换为泛化占位符
+  B) 手动修复 — 你自己在编辑器里改，改完后我会重新扫描验证
+  C) 删除文件 — 从 git 中移除整个文件（git rm）
+  D) 确认安全 — 确认该内容实际不敏感（需输入理由）
+```
+
+用户选择处理方式后，执行对应操作。
+
+### 自动替换规则
+
+用户选择 A（自动替换）时，按以下规则替换：
+
+| 原始内容类型 | 替换为 | 示例 |
+|-------------|--------|------|
+| 真实密钥/Token | `REPLACE_ME_<类型>` | `REPLACE_ME_API_KEY`、`REPLACE_ME_GITHUB_TOKEN` |
+| 个人邮箱 | `user@example.com` | 或用户指定的 GitHub 公开邮箱 |
+| 内部 IP | `192.168.x.x` | 保持格式一致性 |
+| 内部域名 | `internal.example.com` | — |
+| 真实姓名 | `FIRST_NAME` / `LAST_NAME` | — |
+| 手机号 | `1XX-XXXX-XXXX` | — |
+| 可溯源叙事 | 泛化为通用描述 | "在 XX 公司的 YY 项目中" → "在某个项目中" |
+| 本地文件路径 | 泛化路径 | `/Users/zhangsan/project` → `/path/to/project` |
+
+替换后自动使用 `Edit` 工具修改文件内容。
+
+### WARNING 修复选项
+
+对 WARNING 项，批量展示后由用户统一决策：
+
+```
+AskUserQuestion: 发现 WARNING 级别内容
+
+  以下 N 项内容可能敏感，请选择处理方式：
+
+  1. [INF] deploy.sh:8 | internal-ip-address | 192.168.1.100
+  2. [PII] README.md:15 | email-address | dev@company.com
+  3. ...
+
+  对每一项：
+  A) 按自动替换规则处理（同 CRITICAL 选项 A 的替换规则）
+  B) 接受风险 — 标记为已知，继续（不修改）
+```
+
+### Git 历史中的敏感信息（特殊处理）
+
+Git 历史中的敏感信息无法通过简单的文件编辑修复，需要特殊处理。
+
+**Step 1：评估影响范围**
+
+```bash
+# 查找包含敏感字符串的所有 commit
+git log --all -S "敏感字符串" --oneline
+
+# 查看特定文件的历史变更
+git log --all --follow -- "path/to/sensitive/file"
+
+# 统计影响的 commit 数量
+git log --all -S "敏感字符串" --oneline | wc -l
+```
+
+**Step 2：处理方式选择**
+
+```
+AskUserQuestion: Git 历史中发现敏感信息
+
+  以下内容存在于 Git 历史中（即使当前文件已删除/修改）：
+
+  [GIT] commit abc1234 | .env 文件曾被提交后删除
+  [GIT] commit def5678 | config.yml 包含真实 API key
+
+  影响范围：3 个 commit 包含敏感内容
+
+  处理方式：
+  A) 重写历史 — 使用 git filter-repo 清除敏感内容（推荐，仅限未推送到公共远程的仓库）
+     执行前已有 Step 2 的 pre-publish-backup 分支保护原始历史
+  B) 新建干净仓库 — 将当前工作区复制到新目录后 git init，保留原仓库完整不动
+     注意：不删除原 .git 目录，而是 cp -r 工作区文件到新目录再 git init
+  C) 接受风险 — 历史中的敏感内容将通过 git 历史公开
+```
+
+**Option A 详细步骤（重写历史）**：
+
+```bash
+# 确认 git-filter-repo 可用
+pip install git-filter-repo 2>/dev/null || pip3 install git-filter-repo
+
+# 对每个敏感字符串执行替换
+git filter-repo --invert-paths --path .env --force
+git filter-repo --replace-text <(echo 'REAL_API_KEY==>REPLACE_ME_API_KEY')
+
+# 重写后重新检查
+git log --all -S "敏感字符串" --oneline  # 应该无结果
+```
+
+**Option B 详细步骤（新建干净仓库）**：
+
+```bash
+# 1. 创建临时目录
+CLEAN_DIR=$(mktemp -d)/$(basename "$(pwd)")
+mkdir -p "$CLEAN_DIR"
+
+# 2. 复制工作区文件（排除 .git）
+# 注意：不删除原 .git 目录，原仓库保持不动
+rsync -av --exclude='.git' ./ "$CLEAN_DIR/"
+
+# 3. 在新目录初始化
+cd "$CLEAN_DIR"
+git init
+git add -A
+git commit -m "Initial commit: clean history for public publish"
+
+echo "原仓库未受影响，仍在：$(pwd)"
+echo "新干净仓库位于：$CLEAN_DIR"
+```
+
+**Option B 的安全说明**：
+
+- 明确：不删除原 `.git` 目录，原仓库保持完整
+- Step 2 创建的 `pre-publish-backup` 分支保护了原始历史，即使选择 Option A 也可以通过该分支恢复
+- 新建干净仓库后，后续的 Step 5 推送操作在干净仓库目录中执行
+
+### 修复后验证循环（Fix-Verify Loop）
+
+每轮修复完成后，重新运行验证：
+
+```bash
+# 重新运行第 1 层规则扫描（完整扫描，非增量）
+# 对所有 CRITICAL 和 WARNING 修复过的文件重新检查
+# 同时运行 1 轮 AI 抽检，确认修复没有引入新问题
+```
+
+**循环规则**：
+
+- 修复后重新扫描确认
+- 如果仍有未通过的项，进入下一轮修复
+- 最多 3 次（3 轮）修复-验证循环
+- 超过 3 次仍有失败项 → 阻塞推送，输出失败项清单供用户手动处理
+
+```
+修复验证第 N/3 轮：
+
+已修复：X 项
+仍有问题：Y 项
+  - [KEY] src/config.py:42 | CRITICAL | github-pat（第 2 次出现）
+
+[Y = 0] → 全部通过，进入 Step 5
+[Y > 0 且 N < 3] → 继续下一轮修复
+[N = 3 且 Y > 0] → 阻塞推送
+
+阻塞输出：
+  以下 Y 项经 3 轮修复仍存在，请手动处理后重新运行：
+  1. [KEY] src/config.py:42 | github-pat
+  2. ...
+```
+
+### `--dry-run` 模式行为
+
+`--dry-run` 模式下，Step 4 不执行任何实际修改，仅输出修复建议：
+
+```
+[DRY-RUN] 以下为建议修复方案，未执行任何修改：
+
+CRITICAL 项（N 项，必须处理）：
+  1. [KEY] src/config.py:42 | github-pat
+     建议操作：自动替换为 REPLACE_ME_GITHUB_TOKEN
+  2. [FILE] .env | env-files
+     建议操作：删除文件并添加到 .gitignore
+
+WARNING 项（M 项，建议处理）：
+  1. [INF] deploy.sh:8 | internal-ip-address | 192.168.1.100
+     建议操作：替换为 192.168.x.x
+  2. ...
+
+Git 历史问题（K 项）：
+  1. [GIT] commit abc1234 | .env 曾被提交
+     建议操作：git filter-repo --invert-paths --path .env
+
+要执行这些修复，请使用完整流程模式（不带 --dry-run）。
+```
 
 ## Step 5: 仓库决策确认 + 创建推送（集中交互 #2）
 
