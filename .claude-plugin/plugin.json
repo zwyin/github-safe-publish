@@ -1,6 +1,6 @@
 {
-  "name": "project-walkthrough",
-  "description": "Safely publish local Git projects to GitHub public repositories with two-layer desensitization scanning, auto-fix, backup, and end-to-end publishing workflow",
+  "name": "github-safe-publish",
+  "description": "Safely publish local Git projects to GitHub public repositories with two-layer desensitization scanning (135 rules + AI), auto-fix, backup, and end-to-end publishing workflow",
   "version": "0.4.0",
   "author": {
     "name": "zwyin"

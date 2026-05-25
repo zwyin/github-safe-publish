@@ -99,6 +99,17 @@ allowed-tools:
   gh CLI：✗（未安装。可选：手动推送模式）
 ```
 
+**参数冲突校验**（在进入任何交互前先执行，冲突直接报错退出）：
+
+```
+无效组合检测：
+  --scan-only + --seo  → 报错："--scan-only 不能与 --seo 组合。SEO 优化只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
+  --scan-only + --ci   → 报错："--scan-only 不能与 --ci 组合。CI 生成只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
+  --dry-run + --seo    → 报错："--dry-run 不能与 --seo 组合。SEO 优化需要实际推送，模拟模式不做推送。请使用完整流程模式。"
+  --dry-run + --ci     → 报错："--dry-run 不能与 --ci 组合。CI 生成需要实际推送，模拟模式不做推送。请使用完整流程模式。"
+  --scan-only + --dry-run → 报错："--scan-only 和 --dry-run 不能同时使用。--scan-only 只输出扫描报告；--dry-run 在报告基础上还展示推荐修复方案。"
+```
+
 ### 1.2 集中交互确认
 
 将以下决策合并为一次或连续的 AskUserQuestion 调用。问题数量根据上下文动态调整（最多 3 个问题）。
@@ -127,17 +138,6 @@ AskUserQuestion: 附加模块确认
   B) 完整流程 + CI 生成（自动检测并生成 .github/workflows/test.yml）
   C) 完整流程 + SEO + CI（全部功能）
   D) 仅完整流程，不加附加模块
-```
-
-**参数冲突校验**（在任何交互前先检查，冲突直接报错退出）：
-
-```
-无效组合检测：
-  --scan-only + --seo  → 报错："--scan-only 不能与 --seo 组合。SEO 优化只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
-  --scan-only + --ci   → 报错："--scan-only 不能与 --ci 组合。CI 生成只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
-  --dry-run + --seo    → 报错："--dry-run 不能与 --seo 组合。SEO 优化需要实际推送，模拟模式不做推送。请使用完整流程模式。"
-  --dry-run + --ci     → 报错："--dry-run 不能与 --ci 组合。CI 生成需要实际推送，模拟模式不做推送。请使用完整流程模式。"
-  --scan-only + --dry-run → 报错："--scan-only 和 --dry-run 不能同时使用。--scan-only 只输出扫描报告；--dry-run 在报告基础上还展示推荐修复方案。"
 ```
 
 **问题 2：推送方式**（仅完整流程模式下显示）
@@ -256,13 +256,16 @@ else
     # 恢复工作区
     git stash pop || {
         echo "WARNING: stash pop 产生冲突，无法自动恢复工作区。"
-        echo "冲突文件已保留在 stash 中。处理方案："
-        echo "  1. 手动解决冲突后 git stash drop"
-        echo "  2. 或放弃 stash 内容 git stash drop"
+        echo "冲突文件已保留在 stash 中（git stash list 查看）。"
         echo ""
         echo "备份分支 pre-publish-backup 已基于 HEAD 创建（不含未提交内容）。"
-        # 冲突时丢弃 stash，使用 HEAD 状态作为备份点
-        git stash drop
+        echo "请手动处理冲突："
+        echo "  1. 解决冲突文件后 git add . && git stash drop"
+        echo "  2. 或放弃未提交改动：git checkout -- . && git stash drop"
+        echo ""
+        echo "处理完毕后继续后续步骤。"
+        # 不自动丢弃 stash，等待用户手动处理
+        return 1
     }
 fi
 ```
@@ -314,22 +317,22 @@ git ls-files
 git ls-files --others --ignored --exclude-standard | grep -iE '\.env$|\.pem$|\.key$|\.db$|credentials'
 ```
 
-**五个扫描维度**：
+**六个扫描维度**：
 
 | 维度 | 代号 | 说明 | 规则数 |
 |------|------|------|--------|
-| A. 密钥/凭证 | KEY | API Key、Token、Secret 等确定性模式 + 熵值辅助 | 97 |
+| A. 密钥/凭证 | KEY | API Key、Token、Secret 等确定性模式 + 熵值辅助 | 100 |
 | A2. 数据库连接字符串 | DB | 含密码的数据库连接字符串 | 5 |
 | B. PII（个人身份信息） | PII | 邮箱、手机号、身份证号、银行卡号等 | 8 |
 | C. 内部基础设施 | INF | 内网 IP、内部域名、本地文件路径、VPN 配置 | 6 |
 | D. 文件黑名单 | FILE | .env、.pem、.key、.db 等不应公开的文件类型 | 12 |
-| E. Git 历史 | GIT | commit message 中的敏感信息、已删除文件残留、author email 泄露 | 4 |
+| E. Git 历史 | GIT | 历史中的敏感文件残留、大文件、author email 泄露 | 4 |
 
 > 完整正则定义见 `docs/scanning-rules.md`。以下为各维度概要。
 
 **A. 密钥/凭证（正则 + 熵值）**
 
-覆盖 97 条规则，主要服务商包括：
+覆盖 100 条规则，主要服务商包括：
 
 - 云服务：AWS（access token / secret key / Bedrock）、Azure（AD client secret）、GCP（API key / Service Account）、DigitalOcean、Cloudflare（API / Global / Origin CA）
 - 代码平台：GitHub（PAT / App Token / Fine-grained PAT / OAuth / Refresh Token）、GitLab（PAT / Deploy / Runner / CI Job / Feed / K8s Agent）、Bitbucket（Client ID / Secret）
@@ -354,6 +357,7 @@ git ls-files --others --ignored --exclude-standard | grep -iE '\.env$|\.pem$|\.k
 - 银行卡号：中国银行卡号前缀（CRITICAL）
 - 美国社保号 SSN（CRITICAL）
 - 信用卡号：含 Luhn 校验（CRITICAL）
+- IPv4 地址：公网 IP 检测（内网 IP 由 C 维度的 internal-ip-address 覆盖）（WARNING）
 - 硬编码密码：password/passwd/pwd 赋值语句（WARNING）
 
 **C. 内部基础设施（正则）**
@@ -486,7 +490,7 @@ git log --all --diff-filter=D --summary
 
 **v1 → v2 架构变更说明**：
 
-v1 采用 5 轮纯 AI 自由扫描，存在两个问题：(1) 每轮 AI 扫描结果不可复现；(2) 规则可覆盖的模式（如 API Key 格式）不应由 AI 判断。v2 改为"规则确定性扫描 + 1-2 轮 AI 语义补充"两层架构，规则层可复现且覆盖率高（58 条密钥规则 + 8 条 PII 规则），AI 只负责规则无法覆盖的语义部分，因此收敛更快，最多 2 轮即可。
+v1 采用 5 轮纯 AI 自由扫描，存在两个问题：(1) 每轮 AI 扫描结果不可复现；(2) 规则可覆盖的模式（如 API Key 格式）不应由 AI 判断。v2 改为"规则确定性扫描 + 1-2 轮 AI 语义补充"两层架构，规则层可复现且覆盖率高（100 条密钥规则 + 5 条数据库连接字符串 + 8 条 PII 规则），AI 只负责规则无法覆盖的语义部分，因此收敛更快，最多 2 轮即可。
 
 **两层结果合并**：
 
@@ -622,7 +626,7 @@ pip install git-filter-repo 2>/dev/null || pip3 install git-filter-repo
 
 # 对每个敏感字符串执行替换
 git filter-repo --invert-paths --path .env --force
-git filter-repo --replace-text <(echo 'REAL_API_KEY==>REPLACE_ME_API_KEY')
+git filter-repo --replace-text <(echo 'REAL_API_KEY==>REPLACE_ME_API_KEY') --force
 
 # 重写后重新检查
 git log --all -S "敏感字符串" --oneline  # 应该无结果
@@ -662,7 +666,7 @@ echo "新干净仓库位于：$CLEAN_DIR"
 ```bash
 # 重新运行第 1 层规则扫描（完整扫描，非增量）
 # 对所有 CRITICAL 和 WARNING 修复过的文件重新检查
-# 同时运行 1 轮 AI 抽检，确认修复没有引入新问题
+# 同时运行 1 轮 AI 抽检（仅扫描修复过的文件及其关联文件），确认修复没有引入新问题
 ```
 
 **循环规则**：
@@ -776,11 +780,10 @@ AskUserQuestion: 仓库描述（显示在 GitHub About 区域）
 gh api user --jq '.login'
 ```
 
-扫描以下模式并替换：
+扫描以下模式并替换（仅限 README.md 和 Markdown 文件）：
 - `yourname/` → `USERNAME/`
 - `your-username/` → `USERNAME/`
 - `YOUR_GITHUB_USERNAME/` → `USERNAME/`
-- `username/` → `USERNAME/`（仅当上下文为 GitHub URL 时）
 - `https://github.com/yourname/` → `https://github.com/USERNAME/`
 
 替换后如有改动，提交：
@@ -803,7 +806,7 @@ AskUserQuestion: 仓库 USERNAME/REPO_NAME 已存在
   C) 取消
 ```
 
-3. 添加 remote（命名 `github`，保留 `origin`）
+3. 添加 remote（命名 `github`，保留 `origin`）：`git remote add github URL 2>/dev/null || git remote set-url github URL`
 4. `git push github CURRENT_BRANCH`
 5. 设置默认 remote：`git config branch.CURRENT_BRANCH.remote github`
 
@@ -839,6 +842,7 @@ AskUserQuestion: 仓库 USERNAME/REPO_NAME 已存在
 gh repo view --json url,visibility,defaultBranchRef
 
 # 验证远程分支与本地一致
+git fetch github
 git log github/CURRENT_BRANCH --oneline -1
 ```
 
@@ -1087,3 +1091,5 @@ git push github CURRENT_BRANCH
 - 不 force push
 - 脱敏发现的真实密钥必须处理，不能跳过
 - 备份分支 `pre-publish-backup` 不推送到远程
+- SEO 模块只修改 README.md 和 metadata，不修改源代码
+- CI 模块检测已有 `.github/workflows/` 下文件，已存在时不覆盖，改为询问用户

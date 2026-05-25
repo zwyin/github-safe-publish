@@ -42,7 +42,7 @@ def test_skill_contains_flow_control_matrix(skill_text):
 # --- Step structure ---
 
 def test_skill_has_step_headings(skill_text):
-    for i in range(1, 5):
+    for i in range(1, 7):
         pattern = f"## Step {i}:"
         assert pattern in skill_text, f"Missing step heading: {pattern}"
 
@@ -104,9 +104,9 @@ def test_step3_defines_two_layer_architecture(skill_text):
     assert "AI" in step3 or "语义" in step3 or "第 2 层" in step3 or "Layer 2" in step3
 
 
-def test_step3_covers_five_dimensions(skill_text):
+def test_step3_covers_six_dimensions(skill_text):
     step3 = _extract_step(skill_text, 3)
-    for dim_label in ["密钥", "PII", "基础设施", "文件黑名单", "Git 历史"]:
+    for dim_label in ["密钥", "PII", "基础设施", "文件黑名单", "Git 历史", "数据库"]:
         assert dim_label in step3, f"Missing dimension: {dim_label}"
 
 

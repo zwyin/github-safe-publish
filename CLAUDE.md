@@ -17,12 +17,13 @@
 | 5 | `CHANGELOG.md` | 版本标题 | 迭代 4 创建 |
 | 6 | `scripts/release.sh` | 读取并同步 | 迭代 4 创建 |
 
-当前只有位置 1 存在，其余在迭代 4 创建时加入。
+位置 1-3、5-6 已存在。位置 4 (README.md) 尚未创建。
 
 ## 测试
 
 ```bash
 pytest tests/ -q
+scripts/validate_skill.sh
 ```
 
 ## 项目结构要点

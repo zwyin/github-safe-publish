@@ -36,6 +36,11 @@ def test_plugin_json_has_required_fields():
         assert field in data, f"plugin.json missing field: {field}"
 
 
+def test_plugin_json_name_matches_skill():
+    data = _load_json(PLUGIN_JSON)
+    assert data["name"] == "github-safe-publish"
+
+
 def test_plugin_json_version_matches_skill():
     data = _load_json(PLUGIN_JSON)
     assert data["version"] == _skill_version()

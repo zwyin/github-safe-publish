@@ -3,11 +3,11 @@ import re
 
 
 def test_rules_file_exists(rules_text):
-    assert len(rules_text) > 200
+    assert len(rules_text) > 5000
 
 
-def test_all_five_dimensions_covered(rules_text):
-    dimensions = ["密钥", "PII", "内部基础设施", "文件黑名单", "Git 历史"]
+def test_all_six_dimensions_covered(rules_text):
+    dimensions = ["密钥", "PII", "内部基础设施", "文件黑名单", "Git 历史", "数据库连接字符串"]
     for dim in dimensions:
         assert dim in rules_text, f"Missing dimension: {dim}"
 
@@ -62,6 +62,17 @@ def test_database_connection_strings_covered(rules_text):
 def test_vault_tokens_covered(rules_text):
     assert "hvs." in rules_text, "Missing HashiCorp Vault service token (hvs.)"
     assert "hvb." in rules_text, "Missing HashiCorp Vault batch token (hvb.)"
+    assert "hvr." in rules_text, "Missing HashiCorp Vault recovery token (hvr.)"
+
+
+def test_key_rule_count_matches_claim(rules_text):
+    """Verify the actual number of KEY rules matches claimed count."""
+    key_section = re.search(
+        r'## 维度 A：密钥与凭证.*?\n---', rules_text, re.DOTALL
+    )
+    assert key_section, "Cannot find KEY dimension section"
+    rules = re.findall(r'^### (?!概览|严重|扫描|数据)', key_section.group(), re.MULTILINE)
+    assert len(rules) == 100, f"KEY dimension has {len(rules)} rules, expected 100"
 
 
 def test_cloud_platform_tokens_covered(rules_text):

@@ -69,9 +69,11 @@ rm -f "$PLUGIN_JSON.bak"
 sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$MARKETPLACE_JSON"
 rm -f "$MARKETPLACE_JSON.bak"
 
-# 4. Update README version badge
-sed -i.bak "s/badge\/version-[^-]*-/badge\/version-${VERSION}-/" README.md
-rm -f README.md.bak
+# 4. Update README version badge (if exists)
+if [ -f README.md ]; then
+    sed -i.bak "s/badge\/version-[^-]*-/badge\/version-${VERSION}-/" README.md
+    rm -f README.md.bak
+fi
 
 # 5. Update CHANGELOG [Unreleased] → [VERSION]
 TODAY=$(date +%Y-%m-%d)
@@ -92,7 +94,8 @@ else
 fi
 
 echo "==> Committing version bump..."
-git add "$SKILL_MD" "$PLUGIN_JSON" "$MARKETPLACE_JSON" CHANGELOG.md README.md
+git add "$SKILL_MD" "$PLUGIN_JSON" "$MARKETPLACE_JSON" CHANGELOG.md
+[ -f README.md ] && git add README.md
 git commit -m "chore: bump version to $VERSION"
 
 if $BUMP_ONLY; then
@@ -106,4 +109,5 @@ git tag -a "v$VERSION" -m "v$VERSION"
 echo ""
 echo "✓ Released v$VERSION!"
 echo "  Tag: v$VERSION"
-echo "  Push with: git push origin master --tags"
+BRANCH=$(git branch --show-current)
+echo "  Push with: git push origin $BRANCH --tags"

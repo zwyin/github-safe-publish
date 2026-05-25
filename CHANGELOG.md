@@ -26,8 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **44 new scanning rules** based on Gitleaks (120+ rules) and TruffleHog (800+ detectors) source code analysis
+- **47 new scanning rules** based on Gitleaks (120+ rules) and TruffleHog (800+ detectors) source code analysis
 - New dimension **A2: Database Connection Strings** (5 rules): PostgreSQL, MySQL, MongoDB, Redis, JDBC
+- Total dimensions: 5 → 6 (added A2: Database)
 - **Cloud/deploy platforms**: Vercel, Netlify, Supabase, Fly.io, Deno, Cloudflare Global/Origin CA, DigitalOcean, Scaleway
 - **HashiCorp Vault**: service token (hvs.) + batch token (hvb.)
 - **Source control**: Bitbucket (Client ID/Secret), GitLab (CI Job/Feed/K8s Agent tokens)
@@ -35,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Infra/DevOps**: Confluent, Fastly, LaunchDarkly, Codecov, Doppler, ClickHouse, PlanetScale, ngrok
 - **Others**: Dropbox, GCP Service Account, Shopify Shared Secret, Sentry DSN, Sendinblue, Mattermost, MS Teams, Contentful
 - 6 new scanning rule tests (database strings, vault tokens, cloud platforms, AI providers, bitbucket, connection string dimension)
-- Rule count: 88 → 132
+- Rule count: 88 → 135
 
 ## [0.1.0] - 2026-05-25
 
