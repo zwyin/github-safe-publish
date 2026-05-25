@@ -167,3 +167,67 @@ def test_step4_defines_fix_verify_loop(skill_text):
 def test_step4_dry_run_shows_suggestions(skill_text):
     step4 = _extract_step(skill_text, 4)
     assert "dry-run" in step4 or "修复建议" in step4
+
+
+# --- Step 5: Repository Decision + Push ---
+
+def test_step5_has_interactive_confirmation(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "AskUserQuestion" in step5
+
+
+def test_step5_defines_visibility_options(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "Public" in step5
+    assert "Private" in step5
+
+
+def test_step5_defines_repo_name_options(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "仓库名称" in step5 or "repo" in step5.lower()
+    assert "自定义" in step5
+
+
+def test_step5_defines_push_methods(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "自动推送" in step5 or "gh repo create" in step5
+    assert "手动推送" in step5 or "手动操作" in step5
+
+
+def test_step5_handles_name_conflict(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "冲突" in step5 or "422" in step5 or "已存在" in step5
+
+
+def test_step5_replaces_placeholder_links(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "yourname" in step5 or "占位" in step5 or "placeholder" in step5.lower()
+
+
+def test_step5_preserves_origin_remote(skill_text):
+    step5 = _extract_step(skill_text, 5)
+    assert "origin" in step5.lower()
+    assert "github" in step5.lower()
+
+
+# --- Step 6: Verification + Report ---
+
+def test_step6_defines_verification(skill_text):
+    step6 = _extract_step(skill_text, 6)
+    assert "验证" in step6 or "verify" in step6.lower()
+
+
+def test_step6_outputs_report(skill_text):
+    step6 = _extract_step(skill_text, 6)
+    assert "报告" in step6 or "Report" in step6
+
+
+def test_step6_handles_three_modes(skill_text):
+    step6 = _extract_step(skill_text, 6)
+    assert "scan-only" in step6
+    assert "dry-run" in step6
+
+
+def test_step6_includes_backup_info(skill_text):
+    step6 = _extract_step(skill_text, 6)
+    assert "pre-publish-backup" in step6 or "回滚" in step6 or "rollback" in step6.lower()

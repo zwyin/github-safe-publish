@@ -1,6 +1,6 @@
 ---
 name: github-safe-publish
-version: "0.2.0"
+version: "0.3.0"
 description: |
   将本地 Git 项目安全地发布到 GitHub 公开仓库。包含两层脱敏扫描
   （确定性规则 + AI 语义）、自动修复、备份回滚、仓库创建、SEO 优化。
@@ -716,11 +716,205 @@ Git 历史问题（K 项）：
 
 ## Step 5: 仓库决策确认 + 创建推送（集中交互 #2）
 
-<!-- 迭代 2 实现 -->
+> 仅完整流程模式执行。`--scan-only` / `--dry-run` 跳过此步骤。
+
+脱敏通过后，在推送之前集中确认仓库属性。这些决策不可逆或难以逆转。
+
+### 5.1 集中交互确认
+
+**问题 1：仓库可见性**（不可逆——公开后搜索引擎会索引）
+
+```
+AskUserQuestion: 仓库可见性
+  A) Public — 任何人可见，搜索引擎可索引
+     ⚠️ 推送后无法完全撤回，搜索引擎会保留快照
+  B) Private — 仅自己和协作者可见
+```
+
+**问题 2：仓库名称**（重命名会破坏所有链接）
+
+```
+AskUserQuestion: 仓库名称
+  A) project-name（当前目录名）
+     推送后重命名会导致 clone URL、badge、引用全部失效
+  B) 自定义名称：________
+```
+
+**问题 3：仓库描述**（可选）
+
+```
+AskUserQuestion: 仓库描述（显示在 GitHub About 区域）
+  A) 使用 README 第一段自动提取
+  B) 自定义描述：________
+  C) 暂不设置
+```
+
+**交互结果汇总**：
+
+```
+即将发布到 GitHub：
+  仓库：USERNAME/REPO_NAME
+  可见性：Public / Private
+  描述：...
+  分支：CURRENT_BRANCH
+  Commits：N
+  脱敏状态：passed（N items reviewed, N auto-fixed）
+
+  备份分支：pre-publish-backup（如需回滚：git reset --hard pre-publish-backup）
+
+确认推送？
+```
+
+用户确认后，执行推送。
+
+### 5.2 占位链接替换
+
+推送前扫描代码中的占位用户名/链接，替换为实际 GitHub 用户名：
+
+```bash
+# 获取当前 GitHub 用户名
+gh api user --jq '.login'
+```
+
+扫描以下模式并替换：
+- `yourname/` → `USERNAME/`
+- `your-username/` → `USERNAME/`
+- `YOUR_GITHUB_USERNAME/` → `USERNAME/`
+- `username/` → `USERNAME/`（仅当上下文为 GitHub URL 时）
+- `https://github.com/yourname/` → `https://github.com/USERNAME/`
+
+替换后如有改动，提交：
+```bash
+git add -A
+git commit -m "chore: replace placeholder URLs with actual GitHub username"
+```
+
+### 5.3 执行推送
+
+#### A. 自动推送（gh CLI 可用且用户选择自动）
+
+1. `gh repo create` 创建仓库（使用确认的名称和可见性）
+2. 如果 `gh repo create` 返回名称冲突（HTTP 422）：
+
+```
+AskUserQuestion: 仓库 USERNAME/REPO_NAME 已存在
+  A) 推送到现有仓库（仅添加 remote）
+  B) 换一个名称
+  C) 取消
+```
+
+3. 添加 remote（命名 `github`，保留 `origin`）
+4. `git push github CURRENT_BRANCH`
+5. 设置默认 remote：`git config branch.CURRENT_BRANCH.remote github`
+
+#### B. 手动推送
+
+1. 已完成占位链接替换和提交
+2. 输出推送指引：
+
+```
+脱敏检查已通过。接下来请手动操作：
+
+1. 在 GitHub 上创建仓库：REPO_NAME（Public/Private）
+   https://github.com/new
+2. 添加 remote：
+   git remote add github https://github.com/USERNAME/REPO_NAME.git
+3. 推送：
+   git push github CURRENT_BRANCH
+
+完成后建议：
+   git config branch.CURRENT_BRANCH.remote github
+```
 
 ## Step 6: 验证 + 输出报告
 
-<!-- 迭代 2 实现 -->
+> 完整流程模式：验证仓库 + 完整报告。
+> `--scan-only`：仅扫描报告。
+> `--dry-run`：扫描报告 + 修复建议。
+
+### 6.1 仓库验证（仅自动推送模式）
+
+```bash
+# 验证仓库可访问
+gh repo view --json url,visibility,defaultBranchRef
+
+# 验证远程分支与本地一致
+git log github/CURRENT_BRANCH --oneline -1
+```
+
+如验证失败，输出排查指引，不自动重试。
+
+### 6.2 输出报告
+
+**完整流程报告**：
+
+```
+=== GitHub Safe Publish Report ===
+
+Published to GitHub:
+  URL: https://github.com/USERNAME/REPO
+  Branch: BRANCH
+  Commits: N
+  Visibility: public / private
+  Description: ...
+
+Desensitization:
+  Status: passed
+  Items reviewed: N
+  Auto-fixed: N
+  Manual confirmed: N
+  AI semantic scan rounds: 1-2
+
+Backup:
+  Branch: pre-publish-backup
+  Rollback: git reset --hard pre-publish-backup
+  Cleanup: git branch -d pre-publish-backup (when ready)
+
+Next steps:
+  - Verify repository at the URL above
+  - Set up branch protection (Settings → Branches)
+  - Add collaborators if needed
+  - Consider enabling GitHub Actions for CI
+  - Delete pre-publish-backup branch when confident
+```
+
+**--scan-only 报告**：
+
+```
+=== Scan Report ===
+
+Repository: LOCAL_PATH
+Branch: BRANCH
+Files scanned: N
+
+Layer 1 (Rule-based):
+  CRITICAL: N items
+  WARNING: N items
+
+Layer 2 (AI Semantic):
+  Additional findings: N items
+
+Detailed findings:
+  [CRITICAL] file:line | rule-name | matched content (redacted)
+  [WARNING]  file:line | rule-name | matched content (redacted)
+  ...
+
+Recommendation: Fix CRITICAL items before publishing. Run without --scan-only to auto-fix.
+```
+
+**--dry-run 报告**：
+
+在 scan-only 报告基础上，追加每个发现项的建议修复方案：
+
+```
+Suggested fixes:
+  [CRITICAL] file:line | rule-name
+    → Auto-replace with REPLACE_ME
+    → Or remove the file from tracking
+  [WARNING]  file:line | rule-name
+    → Confirm as safe (no action needed)
+    → Or replace with placeholder
+```
 
 ## 可选模块
 
