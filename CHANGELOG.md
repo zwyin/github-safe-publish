@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-05-25
+
+### Added
+
+- `README.md`: project overview, features, usage, architecture, installation, and testing instructions
+- `.github/workflows/test.yml`: CI pipeline (Ubuntu + macOS, Python 3.10 + 3.12)
+- `scripts/release.sh`: README.md guard (conditional sed) and dynamic branch detection
+
+### Fixed
+
+- 5-round independent review: rule count accuracy (132→135), regex fixes (Discord/Supabase/email/vault), flow logic (stash conflict, placeholder URL scope, filter-repo --force), cross-file consistency tests, CHANGELOG and CLAUDE.md corrections
+
 ## [0.4.0] - 2026-05-25
 
 ### Added
