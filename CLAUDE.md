@@ -31,8 +31,19 @@ SSH 密钥绑定 `openclaw-jarvis-lab` 账户，无法推送到 `zwyin/` 仓库�
 
 ```bash
 pytest tests/ -q
+pytest tests/ --cov=tests --cov-report=term-missing -q
 scripts/validate_skill.sh
 ```
+
+### 覆盖率目标
+
+| 层 | 目标 | 当前 |
+|----|------|------|
+| Tests 总体 | ≥ 95% | 99% |
+| test_skill_structure | ≥ 90% | 100% |
+| test_scanning_rules | ≥ 90% | 97% |
+| test_convert | ≥ 90% | 100% |
+| test_plugin_metadata | ≥ 90% | 100% |
 
 ## 项目结构要点
 

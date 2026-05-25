@@ -33,8 +33,3 @@ def skill_frontmatter(skill_text):
 @pytest.fixture
 def rules_text():
     return SCANNING_RULES_MD.read_text(encoding="utf-8")
-
-
-@pytest.fixture
-def skill_md_path():
-    return SKILL_MD
