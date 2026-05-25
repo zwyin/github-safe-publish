@@ -1,6 +1,14 @@
 # github-safe-publish
 
-## 版本管理
+## 推送命令
+
+本地代理拦截 HTTPS（端口 443），需显式绕过：
+
+```bash
+git -c http.proxy="" -c https.proxy="" push github master
+```
+
+SSH 密钥绑定 `openclaw-jarvis-lab` 账户，无法推送到 `zwyin/` 仓库。使用 gh CLI 的 OAuth token（`gh auth setup-git`）+ 上述绕过代理方式推送。
 
 ### 唯一版本源
 
