@@ -87,11 +87,26 @@ def test_marketplace_json_category_is_security():
     assert data["plugins"][0].get("category") == "security"
 
 
-# --- Version synchronization ---
+# --- Version synchronization (6 locations) ---
 
 def test_versions_synchronized():
+    """All version locations must match SKILL.md (single source of truth)."""
     skill_ver = _skill_version()
     plugin_ver = _load_json(PLUGIN_JSON)["version"]
     market_ver = _load_json(MARKETPLACE_JSON)["version"]
     assert skill_ver == plugin_ver == market_ver, \
-        f"Version mismatch: SKILL.md={skill_ver}, plugin.json={plugin_ver}, marketplace.json={market_ver}"
+        f"Core mismatch: SKILL.md={skill_ver}, plugin.json={plugin_ver}, marketplace.json={market_ver}"
+
+    # README.md version badge
+    readme = (ROOT / "README.md").read_text()
+    badge_match = re.search(r'badge/version-([^"-]+)-', readme)
+    assert badge_match, "Cannot find version badge in README.md"
+    assert badge_match.group(1) == skill_ver, \
+        f"README badge: {badge_match.group(1)} != SKILL.md: {skill_ver}"
+
+    # CHANGELOG.md latest version header
+    changelog = (ROOT / "CHANGELOG.md").read_text()
+    header_match = re.search(r'^## \[(\d+\.\d+\.\d+)\]', changelog, re.MULTILINE)
+    assert header_match, "Cannot find version header in CHANGELOG.md"
+    assert header_match.group(1) == skill_ver, \
+        f"CHANGELOG header: {header_match.group(1)} != SKILL.md: {skill_ver}"
