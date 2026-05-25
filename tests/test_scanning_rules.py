@@ -52,3 +52,36 @@ def test_pii_covers_chinese_patterns(rules_text):
 def test_infrastructure_covers_internal_patterns(rules_text):
     assert "192.168" in rules_text
     assert "/Users/" in rules_text or "C:\\\\Users" in rules_text
+
+
+def test_database_connection_strings_covered(rules_text):
+    for proto in ["postgresql://", "mysql://", "mongodb://", "redis://"]:
+        assert proto in rules_text, f"Missing database connection string: {proto}"
+
+
+def test_vault_tokens_covered(rules_text):
+    assert "hvs." in rules_text, "Missing HashiCorp Vault service token (hvs.)"
+    assert "hvb." in rules_text, "Missing HashiCorp Vault batch token (hvb.)"
+
+
+def test_cloud_platform_tokens_covered(rules_text):
+    """Modern cloud/deployment platforms must be covered."""
+    lower = rules_text.lower()
+    for platform in ["vercel", "netlify", "supabase", "flyio", "deno"]:
+        assert platform in lower, f"Missing cloud platform: {platform}"
+
+
+def test_ai_provider_tokens_comprehensive(rules_text):
+    """AI/ML providers beyond OpenAI and Anthropic."""
+    lower = rules_text.lower()
+    for provider in ["gemini", "deepseek", "xai", "replicate"]:
+        assert provider in lower, f"Missing AI provider: {provider}"
+
+
+def test_bitbucket_tokens_covered(rules_text):
+    lower = rules_text.lower()
+    assert "bitbucket" in lower, "Missing Bitbucket detection"
+
+
+def test_connection_string_dimension_exists(rules_text):
+    assert "数据库连接字符串" in rules_text

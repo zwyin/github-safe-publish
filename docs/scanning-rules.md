@@ -1,14 +1,15 @@
 # Scanning Rules Reference (Layer 1)
 
 > 本文档定义 github-safe-publish 脱敏扫描第 1 层（确定性正则匹配）的全部规则。
-> 参考来源：Gitleaks v8.25+ 默认配置（222 条规则）+ 中国本地化扩展 + 内部基础设施检测。
-> 最后更新：2026-05-25
+> 参考来源：Gitleaks v8.25+ 默认配置（120+ 规则）+ TruffleHog 800+ 检测器提取 + 中国本地化扩展 + 内部基础设施检测。
+> 最后更新：2026-05-25 (v2)
 
 ## 概览
 
 | 维度 | 代号 | 说明 | 规则数 |
 |------|------|------|--------|
-| A. 密钥与凭证 | KEY | API Key、Token、Secret 等确定性模式 | 58 |
+| A. 密钥与凭证 | KEY | API Key、Token、Secret 等确定性模式 | 97 |
+| A2. 数据库连接字符串 | DB | 含密码的数据库连接字符串 | 5 |
 | B. 个人身份信息 | PII | 邮箱、手机号、身份证号等 | 8 |
 | C. 内部基础设施 | INF | 内部 IP、域名、文件路径、URL | 6 |
 | D. 文件黑名单 | FILE | 不应出现在公开仓库的文件类型 | 12 |
@@ -400,6 +401,264 @@
 - **熵值**: 3.5（**阈值 4.5** 用于二次过滤：低于阈值的匹配降为 WARNING）
 - **严重级别**: WARNING（高熵匹配升级为 CRITICAL）
 - **误报排除**: 变量名本身含 key/token 但值为空/placeholder；`example.com`、`localhost` 等测试地址中的 key
+
+### vercel-access-token
+- **正则**: `\b(VERCEL_[a-zA-Z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `vercel`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### netlify-access-token
+- **正则**: `\b(nfp_[a-zA-Z0-9]{40,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `nfp_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### supabase-access-token
+- **正则**: `\b(sb[p|v]_[a-zA-Z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `sbp_`, `sbv_`
+- **严重级别**: CRITICAL
+- **误报排除**: `anon` key（公开密钥，用于前端）标记为 WARNING
+
+### flyio-access-token
+- **正则**: `\b(FlyV1 [a-zA-Z0-9_\-]{40,}|fo1_[a-zA-Z0-9_\-]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `flyv1`, `fo1_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### deno-access-token
+- **正则**: `\b(deno_[a-zA-Z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `deno_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### cloudflare-global-api-key
+- **正则**: `\b([a-f0-9]{37})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `cloudflare`, `x-auth-key`
+- **熵值**: 3.5
+- **严重级别**: CRITICAL
+- **误报排除**: 需与 Cloudflare 上下文关键字共现（变量名/注释/URL 含 cloudflare）
+
+### cloudflare-origin-ca-key
+- **正则**: `\b(v1\.0-[a-f0-9]{24}-[a-f0-9]{146})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `v1.0-`
+- **严重级别**: CRITICAL
+- **误报排除**: 无（`v1.0-` 前缀为 Cloudflare Origin CA 固定格式）
+
+### digitalocean-access-token
+- **正则**: `\b(doo_v1_[a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `doo_v1_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### vault-service-token
+- **正则**: `\b(hvs\.[a-zA-Z0-9]{20,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `hvs.`
+- **严重级别**: CRITICAL
+- **误报排除**: 无（`hvs.` 为 HashiCorp Vault service token 固定前缀）
+
+### vault-batch-token
+- **正则**: `\b(hvb\.[a-zA-Z0-9]{20,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `hvb.`
+- **严重级别**: CRITICAL
+- **误报排除**: 无（`hvb.` 为 HashiCorp Vault batch token 固定前缀）
+
+### bitbucket-client-id
+- **正则**: `(?i)[\w.-]{0,50}?(?:bitbucket)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `bitbucket`
+- **严重级别**: WARNING
+- **误报排除**: Client ID 单独泄露风险较低，需与 Client Secret 共现才升级 CRITICAL
+
+### bitbucket-client-secret
+- **正则**: `(?i)[\w.-]{0,50}?(?:bitbucket)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9_\-]{40,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `bitbucket`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### gitlab-cicd-job-token
+- **正则**: `\bglcbt-[a-zA-Z0-9]{20,}(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `glcbt-`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### gitlab-feed-token
+- **正则**: `\bglft-[a-zA-Z0-9]{20,}(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `glft-`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### gitlab-kubernetes-agent-token
+- **正则**: `\bglagent-[a-zA-Z0-9]{20,}(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `glagent-`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### confluent-access-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:confluent)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9]{16,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `confluent`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### confluent-secret-key
+- **正则**: `(?i)[\w.-]{0,50}?(?:confluent)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9+/]{40,}={0,2})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `confluent`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### launchdarkly-access-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:launchdarkly|ld)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9][-a-z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `launchdarkly`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### fastly-api-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:fastly)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `fastly`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### codecov-access-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:codecov)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-f0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `codecov`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### doppler-api-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:doppler)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9]{40,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `doppler`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### dropbox-api-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:dropbox)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}(sl\.[a-zA-Z0-9_-]{100,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `dropbox`, `sl.`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### gcp-service-account
+- **正则**: `(?i)(?:"type"\s*:\s*"service_account"|GOOGLE_APPLICATION_CREDENTIALS)`
+- **关键字**: `service_account`, `google_application_credentials`
+- **严重级别**: CRITICAL
+- **误报排除**: 仅匹配 JSON key 文件标识，需进一步检查文件内容
+
+### clickhouse-cloud-api-secret
+- **正则**: `(?i)[\w.-]{0,50}?(?:clickhouse)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `clickhouse`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### planetscale-api-token
+- **正则**: `\b(pscale_tkn_[a-zA-Z0-9_\-=]{40,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `pscale_tkn_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### shopify-shared-secret
+- **正则**: `\b(shpss_[a-fA-F0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `shpss_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### google-gemini-api-key
+- **正则**: `(?i)[\w.-]{0,50}?(?:gemini|GOOGLE_API_KEY|GOOGLE_GENERATIVE_AI)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}(AIza[\w-]{35})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `gemini`, `google_api_key`
+- **熵值**: 4
+- **严重级别**: CRITICAL
+- **误报排除**: 与 gcp-api-key 重叠，此规则侧重变量名含 gemini 的匹配
+
+### deepseek-api-token
+- **正则**: `\b(sk-[a-f0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `deepseek`
+- **严重级别**: CRITICAL
+- **误报排除**: `sk-` 前缀与 OpenAI 重叠，此规则仅匹配 DEEPSEEK 上下文
+
+### xai-api-key
+- **正则**: `\b(xai-[a-zA-Z0-9]{40,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `xai-`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### replicate-api-token
+- **正则**: `\b(r8_[a-zA-Z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `r8_`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### sendinblue-api-token
+- **正则**: `\b(xkeysib-[a-fA-F0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `xkeysib-`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### mattermost-access-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:mattermost)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-zA-Z0-9]{26})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `mattermost`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### microsoft-teams-webhook
+- **正则**: `https://[a-zA-Z0-9]+\.webhook\.office\.com/webhookb2/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}@[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/IncomingWebhook/[a-f0-9]{32}/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}`
+- **关键字**: `webhook.office.com`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### contentful-delivery-api-token
+- **正则**: `(?i)[\w.-]{0,50}?(?:contentful)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-f0-9]{43})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `contentful`
+- **严重级别**: WARNING
+- **误报排除**: Contentful delivery API token 为公开只读，但暴露仍不推荐
+
+### scaleway-api-key
+- **正则**: `\b(SCW[a-zA-Z0-9]{30,})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `scw`
+- **严重级别**: CRITICAL
+- **误报排除**: 无
+
+### ngrok-auth-token
+- **正则**: `\b([a-zA-Z0-9]{24}_[a-zA-Z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)`
+- **关键字**: `ngrok`, `authtoken`
+- **严重级别**: CRITICAL
+- **误报排除**: 需与 ngrok 上下文共现
+
+### sentry-dsn
+- **正则**: `https://[a-f0-9]{32}@o\d+\.ingest\.sentry\.io/\d+`
+- **关键字**: `sentry`, `ingest.sentry.io`
+- **严重级别**: WARNING
+- **误报排除**: Sentry DSN 通常为公开只读（错误上报），但暴露内部项目 ID
+
+---
+
+### 数据库连接字符串
+
+### postgres-connection-string
+- **正则**: `(?i)(?:postgres(?:ql)?://[\w.-]{1,256}:[\w!@#$%^&*()\-_=+]{1,256}@[\w.-]{1,256}(?::\d{1,5})?(?:/[\w.-]{1,256})?(?:\?[\w&%=]*)?)`
+- **关键字**: `postgresql://`, `postgres://`
+- **严重级别**: CRITICAL
+- **误报排除**: `localhost`/`127.0.0.1` 且无密码的本地开发连接可降为 WARNING
+
+### mysql-connection-string
+- **正则**: `(?i)(?:mysql://[\w.-]{1,256}:[\w!@#$%^&*()\-_=+]{1,256}@[\w.-]{1,256}(?::\d{1,5})?(?:/[\w.-]{1,256})?(?:\?[\w&%=]*)?)`
+- **关键字**: `mysql://`
+- **严重级别**: CRITICAL
+- **误报排除**: 同上，本地开发连接可降为 WARNING
+
+### mongodb-connection-string
+- **正则**: `(?i)(?:mongodb(?:\+srv)?://[\w.-]{1,256}:[\w!@#$%^&*()\-_=+]{1,256}@[\w.-]{1,256}(?::\d{1,5})?(?:/[\w.-]{1,256})?(?:\?[\w&%=]*)?)`
+- **关键字**: `mongodb://`, `mongodb+srv://`
+- **严重级别**: CRITICAL
+- **误报排除**: 同上
+
+### redis-connection-string
+- **正则**: `(?i)(?:redis://:[\w!@#$%^&*()\-_=+]{1,256}@[\w.-]{1,256}(?::\d{1,5})?(?:/\d{0,3})?)`
+- **关键字**: `redis://`
+- **严重级别**: CRITICAL
+- **误报排除**: 无密码连接 `redis://localhost:6379` 降为 WARNING
+
+### jdbc-connection-string
+- **正则**: `(?i)(?:jdbc:(?:mysql|postgresql|sqlserver|oracle|sqlite|mariadb)://[\w.-]{1,256}(?::\d{1,5})?(?:/[\w.-]{1,256})?.*(?:password|pwd)=[\w!@#$%^&*()\-_=+]{1,256})`
+- **关键字**: `jdbc:`
+- **严重级别**: CRITICAL
+- **误报排除**: 无密码的 JDBC URL 降为 WARNING
 
 ---
 

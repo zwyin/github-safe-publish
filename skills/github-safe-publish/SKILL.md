@@ -1,6 +1,6 @@
 ---
 name: github-safe-publish
-version: "0.1.0"
+version: "0.2.0"
 description: |
   将本地 Git 项目安全地发布到 GitHub 公开仓库。包含两层脱敏扫描
   （确定性规则 + AI 语义）、自动修复、备份回滚、仓库创建、SEO 优化。
@@ -318,7 +318,8 @@ git ls-files --others --ignored --exclude-standard | grep -iE '\.env$|\.pem$|\.k
 
 | 维度 | 代号 | 说明 | 规则数 |
 |------|------|------|--------|
-| A. 密钥/凭证 | KEY | API Key、Token、Secret 等 50+ 确定性模式 + 熵值辅助 | 58 |
+| A. 密钥/凭证 | KEY | API Key、Token、Secret 等确定性模式 + 熵值辅助 | 97 |
+| A2. 数据库连接字符串 | DB | 含密码的数据库连接字符串 | 5 |
 | B. PII（个人身份信息） | PII | 邮箱、手机号、身份证号、银行卡号等 | 8 |
 | C. 内部基础设施 | INF | 内网 IP、内部域名、本地文件路径、VPN 配置 | 6 |
 | D. 文件黑名单 | FILE | .env、.pem、.key、.db 等不应公开的文件类型 | 12 |
@@ -328,17 +329,22 @@ git ls-files --others --ignored --exclude-standard | grep -iE '\.env$|\.pem$|\.k
 
 **A. 密钥/凭证（正则 + 熵值）**
 
-覆盖 58 条规则，主要服务商包括：
+覆盖 97 条规则，主要服务商包括：
 
-- 云服务：AWS（access token / secret key / Bedrock）、Azure（AD client secret）、GCP（API key）、Alibaba
-- 代码平台：GitHub（PAT / App Token / Fine-grained PAT / OAuth / Refresh Token）、GitLab（PAT / Deploy Token / Runner Token）
-- AI 服务：OpenAI、Anthropic、HuggingFace、Cohere、Perplexity
-- 通信：Slack（Bot / User / Webhook）、Twilio、SendGrid、Telegram、Discord
-- 支付：Stripe、Square、Plaid、Flutterwave
-- 运维：Datadog、Sentry、New Relic、Grafana、Snyk、Databricks、Dynatrace、Pulumi、Artifactory、HashiCorp Terraform
-- 其他：npm、PyPI、RubyGems、Heroku、Shopify、Postman、Notion、Atlassian（Jira/Confluence）、Linear、Mailchimp、Okta、Cloudflare、Mailgun、Algolia、Facebook
+- 云服务：AWS（access token / secret key / Bedrock）、Azure（AD client secret）、GCP（API key / Service Account）、DigitalOcean、Cloudflare（API / Global / Origin CA）
+- 代码平台：GitHub（PAT / App Token / Fine-grained PAT / OAuth / Refresh Token）、GitLab（PAT / Deploy / Runner / CI Job / Feed / K8s Agent）、Bitbucket（Client ID / Secret）
+- AI 服务：OpenAI、Anthropic、HuggingFace、Cohere、Perplexity、Google Gemini、DeepSeek、xAI、Replicate
+- 通信：Slack（Bot / User / Webhook）、Twilio、SendGrid、Telegram、Discord、Sendinblue、Mattermost、MS Teams
+- 支付：Stripe、Square、Plaid、Flutterwave、Shopify（Access / Shared Secret）
+- 运维：Datadog、Sentry（Access / DSN）、New Relic、Grafana、Snyk、Databricks、Dynatrace、Pulumi、Artifactory、HashiCorp（Terraform / Vault）
+- 部署平台：Vercel、Netlify、Supabase、Fly.io、Deno、PlanetScale
+- 其他：npm、PyPI、RubyGems、Heroku、Postman、Notion、Atlassian（Jira/Confluence）、Linear、Mailchimp、Okta、Mailgun、Algolia、Facebook、Dropbox、Confluent、Fastly、LaunchDarkly、Codecov、Doppler、ClickHouse、Contentful、Scaleway、ngrok
 
 熵值检测（Shannon entropy）：阈值 4.5，仅在已知密钥关键字附近触发，不全局扫描所有字符串以避免 Base64/哈希值误报。`generic-api-key` 规则匹配后，熵值 >= 4.5 升级为 CRITICAL，< 4.5 降为 WARNING。
+
+**A2. 数据库连接字符串（正则）**
+
+覆盖 5 条规则：PostgreSQL、MySQL、MongoDB、Redis、JDBC 通用格式。检测连接字符串中嵌入的密码。本地开发连接（localhost + 无密码）降为 WARNING。
 
 **B. PII（正则）**
 
