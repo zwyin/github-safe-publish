@@ -96,3 +96,11 @@ def test_bitbucket_tokens_covered(rules_text):
 
 def test_connection_string_dimension_exists(rules_text):
     assert "数据库连接字符串" in rules_text
+
+
+def test_total_rule_count(rules_text):
+    """Verify total rule count across all dimensions."""
+    all_rules = re.findall(r"^### ([a-z0-9][a-z0-9-]*)$", rules_text, re.MULTILINE)
+    skip = {"计算方法", "阈值", "示例", "数据库连接字符串"}
+    all_rules = [r for r in all_rules if r not in skip]
+    assert len(all_rules) == 135, f"Expected 135 rules, found {len(all_rules)}"

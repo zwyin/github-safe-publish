@@ -42,8 +42,15 @@ scripts/validate_skill.sh
 | Tests 总体 | ≥ 95% | 99% |
 | test_skill_structure | ≥ 90% | 100% |
 | test_scanning_rules | ≥ 90% | 97% |
+| test_detection | ≥ 95% | 100% |
 | test_convert | ≥ 90% | 100% |
 | test_plugin_metadata | ≥ 90% | 100% |
+| test_conftest | ≥ 90% | 100% |
+
+### 规则检测覆盖
+
+134/135 scanning rules 有端到端检测测试（唯一未覆盖：`large-file-in-history`，基于文件大小阈值无正则）。
+检测测试使用 `_detects()` 和 `_detects_file()` 从 `docs/scanning-rules.md` 提取正则并验证。
 
 ## 项目结构要点
 
