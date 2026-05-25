@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.1] - 2026-05-26
+
+### Added
+
+- Detection tests expanded from 25 to 134 rules (134/135 = 99% rule coverage, 225 total tests)
+- New test helper `_detects_file()` for FILE dimension rules (uses `模式` field)
+- Coverage: GitHub tokens (app/fine-grained/OAuth/refresh), cloud providers (GCP/DigitalOcean/Vercel/Netlify/Supabase/Fly.io/Deno/Scaleway), AI providers (Anthropic admin/HuggingFace/Perplexity/xAI/Replicate/DeepSeek), DevOps (GitLab deploy/runner/CICD/feed/K8s/Databricks/PlanetScale/Pulumi/Linear), SaaS (Notion/Shopify/Sendinblue/RubyGems/Postman/Artifactory), crypto (private key/JWT/K8s secret), PII (Chinese ID/US SSN/credit card/bank card/password), infrastructure (internal IP/hostname/path/URL/VPN), FILE dimension (12 rules), GIT history (3 rules)
+
 ## [0.6.0] - 2026-05-25
 
 ### Added
