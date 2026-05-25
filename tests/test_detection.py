@@ -16,11 +16,29 @@ def _extract_regex(rule_name):
     return match.group(1)
 
 
+def _extract_pattern(rule_name):
+    """Extract the file-pattern regex for FILE dimension rules (uses '模式' not '正则')."""
+    pattern = re.compile(
+        rf'### {re.escape(rule_name)}\s*\n.*?- \*\*模式\*\*: `([^`]+)`',
+        re.DOTALL,
+    )
+    match = pattern.search(RULES_TEXT)
+    assert match, f"FILE rule '{rule_name}' not found in scanning-rules.md"
+    return match.group(1)
+
+
 def _detects(rule_name, test_string):
     """Assert that the rule's regex matches the test string."""
     pattern = _extract_regex(rule_name)
     assert re.search(pattern, test_string), \
         f"Rule '{rule_name}' failed to match in: {test_string[:80]}"
+
+
+def _detects_file(rule_name, file_path):
+    """Assert that a FILE rule's pattern matches the given file path."""
+    pattern = _extract_pattern(rule_name)
+    assert re.search(pattern, file_path), \
+        f"FILE rule '{rule_name}' failed to match path: {file_path}"
 
 
 # --- Dimension A: Keys/Credentials ---
@@ -485,3 +503,124 @@ class TestInfraURL:
     def test_internal_url(self):
         _detects("internal-url",
                  "http://nas.local:8080/api/config")
+
+
+# --- Dimension A: Remaining KEY rules ---
+
+class TestRemainingKeyRules:
+    def test_cloudflare_api_key(self):
+        _detects("cloudflare-api-key",
+                 'cloudflare_api_key = "' + "a" * 40 + '"')
+
+    def test_algolia_api_key(self):
+        _detects("algolia-api-key",
+                 'algolia_api_key = "' + "a" * 32 + '"')
+
+    def test_cohere_api_token(self):
+        _detects("cohere-api-token",
+                 'CO_API_KEY = "' + "a" * 40 + '"')
+
+    def test_facebook_access_token(self):
+        _detects("facebook-access-token",
+                 "123456789012345|" + "a" * 30)
+
+    def test_launchdarkly_token(self):
+        _detects("launchdarkly-access-token",
+                 'launchdarkly_sdk_key = "' + "a" * 32 + '"')
+
+    def test_codecov_token(self):
+        _detects("codecov-access-token",
+                 'codecov_token = "' + "a" * 32 + '"')
+
+    def test_doppler_token(self):
+        _detects("doppler-api-token",
+                 'doppler_token = "' + "a" * 42 + '"')
+
+    def test_gcp_service_account(self):
+        _detects("gcp-service-account",
+                 '"type": "service_account"')
+
+    def test_google_gemini_api_key(self):
+        _detects("google-gemini-api-key",
+                 'GOOGLE_API_KEY = "AIza' + "a" * 35 + '"')
+
+    def test_cloudflare_global_api_key(self):
+        _detects("cloudflare-global-api-key",
+                 "a" * 37)
+
+    def test_bitbucket_client_id(self):
+        _detects("bitbucket-client-id",
+                 'BITBUCKET_CLIENT_ID = "' + "a" * 32 + '"')
+
+    def test_confluent_secret_key(self):
+        _detects("confluent-secret-key",
+                 'confluent_secret = "' + "a" * 42 + '=="')
+
+
+# --- Dimension B: PII remaining ---
+
+class TestPIIRemaining:
+    def test_ip_address_ipv4(self):
+        _detects("ip-address-ipv4", "203.0.113.50")
+
+
+# --- Dimension D: File blacklist (uses 模式 not 正则) ---
+
+class TestFileBlacklist:
+    def test_env_files(self):
+        _detects_file("env-files", ".env")
+        _detects_file("env-files", ".env.production")
+
+    def test_credential_files(self):
+        _detects_file("credential-files", "credentials.json")
+        _detects_file("credential-files", "id_rsa")
+
+    def test_database_dumps(self):
+        _detects_file("database-dumps", "backup.sql")
+        _detects_file("database-dumps", "data.db")
+
+    def test_ide_config_files(self):
+        _detects_file("ide-config-files", ".idea/workspace.xml")
+        _detects_file("ide-config-files", ".vscode/settings.json")
+
+    def test_os_specific_files(self):
+        _detects_file("os-specific-files", ".DS_Store")
+
+    def test_log_files(self):
+        _detects_file("log-files", "app.log")
+        _detects_file("log-files", "error.log.1")
+
+    def test_cache_temp_files(self):
+        _detects_file("cache-temp-files", "__pycache__/module.cpython-312.pyc")
+
+    def test_docker_sensitive_files(self):
+        _detects_file("docker-sensitive-files", "docker-compose.override.yml")
+
+    def test_terraform_state_files(self):
+        _detects_file("terraform-state-files", "terraform.tfstate")
+
+    def test_large_binary_files(self):
+        _detects_file("large-binary-files", "app.exe")
+        _detects_file("large-binary-files", "data.zip")
+
+    def test_ssh_config_files(self):
+        _detects_file("ssh-config-files", ".ssh/config")
+
+    def test_backup_files(self):
+        _detects_file("backup-files", "config.yaml.bak")
+        _detects_file("backup-files", "data.json.backup")
+
+
+# --- Dimension E: Git history (with 正则) ---
+
+class TestGitHistory:
+    def test_binary_secrets_in_history(self):
+        _detects("binary-secrets-in-history", ".env")
+        _detects("binary-secrets-in-history", "server.pem")
+
+    def test_author_email_leak(self):
+        _detects("author-email-leak", "john.doe@company.com")
+
+    def test_removed_sensitive_file(self):
+        _detects("removed-sensitive-file", "secrets.json")
+        _detects("removed-sensitive-file", "credentials.yml")
