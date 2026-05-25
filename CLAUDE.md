@@ -17,7 +17,7 @@
 | 5 | `CHANGELOG.md` | 版本标题 | 迭代 4 创建 |
 | 6 | `scripts/release.sh` | 读取并同步 | 迭代 4 创建 |
 
-位置 1-3、5-6 已存在。位置 4 (README.md) 尚未创建。
+所有 6 处位置均已存在。
 
 ## 测试
 
@@ -30,4 +30,5 @@ scripts/validate_skill.sh
 
 - **SKILL.md 是唯一事实源**：所有扫描规则、步骤流程、修复逻辑都定义在 `skills/github-safe-publish/SKILL.md` 中
 - **scanning-rules.md 是规则参考**：`docs/scanning-rules.md` 是第 1 层规则的完整正则定义，供维护者参考，SKILL.md 引用但不重复全部正则
-- **旧版 SKILL.md**：根目录的 `SKILL.md` 是 v1 版本，已迁移到 `skills/` 目录下，根目录版本已删除
+- **convert.sh 多平台转换**：`scripts/convert.sh` 将 SKILL.md 转换为 Cursor (.mdc)、Windsurf (.windsurfrules)、OpenCode (AGENTS.md) 格式，输出到 `dist/`
+- **已发布**：https://github.com/zwyin/github-safe-publish
