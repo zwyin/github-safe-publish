@@ -231,3 +231,50 @@ def test_step6_handles_three_modes(skill_text):
 def test_step6_includes_backup_info(skill_text):
     step6 = _extract_step(skill_text, 6)
     assert "pre-publish-backup" in step6 or "回滚" in step6 or "rollback" in step6.lower()
+
+
+# --- Optional Modules ---
+
+def test_seo_module_defines_description_optimization(skill_text):
+    assert "SEO-1" in skill_text or "Description" in skill_text
+    assert "gh repo edit" in skill_text
+
+
+def test_seo_module_defines_topics(skill_text):
+    assert "SEO-2" in skill_text or "topic" in skill_text.lower()
+    assert "add-topic" in skill_text
+
+
+def test_seo_module_defines_badges(skill_text):
+    assert "SEO-3" in skill_text or "badge" in skill_text.lower()
+    assert "shields.io" in skill_text
+
+
+def test_seo_module_defines_readme_check(skill_text):
+    assert "SEO-4" in skill_text or "README" in skill_text
+    assert "结构" in skill_text or "structure" in skill_text.lower()
+
+
+def test_seo_module_commits_and_pushes(skill_text):
+    assert "SEO-5" in skill_text
+    assert "SEO optimization" in skill_text or "seo" in skill_text.lower()
+
+
+def test_ci_module_detects_project_type(skill_text):
+    assert "CI-1" in skill_text or "项目类型" in skill_text
+    assert "pytest" in skill_text or "unittest" in skill_text
+
+
+def test_ci_module_defines_platform_matrix(skill_text):
+    assert "CI-2" in skill_text or "平台矩阵" in skill_text
+    assert "ubuntu" in skill_text.lower()
+    assert "macos" in skill_text.lower()
+
+
+def test_ci_module_generates_workflow(skill_text):
+    assert "CI-3" in skill_text or "workflows/test.yml" in skill_text
+    assert "PYTHONUTF8" in skill_text
+
+
+def test_ci_module_confirms_before_push(skill_text):
+    assert "CI-4" in skill_text or "确认" in skill_text

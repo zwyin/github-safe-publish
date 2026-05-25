@@ -1,6 +1,6 @@
 ---
 name: github-safe-publish
-version: "0.3.0"
+version: "0.4.0"
 description: |
   将本地 Git 项目安全地发布到 GitHub 公开仓库。包含两层脱敏扫描
   （确定性规则 + AI 语义）、自动修复、备份回滚、仓库创建、SEO 优化。
@@ -920,11 +920,165 @@ Suggested fixes:
 
 ### --seo 模块
 
-<!-- 迭代 3 实现 -->
+> 推送成功后执行。不可与 `--scan-only` / `--dry-run` 组合。
+
+#### SEO-1: Description 优化
+
+通过 `gh repo edit --description` 设置仓库描述：
+- 120 字符以内，主关键词开头
+- 包含核心技术关键词（如 Python、Claude Code skill、secret scanning）
+- 从 README 第一段提取，人工确认后应用
+
+```
+AskUserQuestion: 仓库描述
+  A) {自动提取的 description}
+  B) 自定义：________
+```
+
+#### SEO-2: Topics 标签
+
+通过 `gh repo edit --add-topic` 添加标签：
+- 6-20 个标签
+- 三类均衡分布：用途（what）/ 技术栈（how）/ 领域（domain）
+- 不用项目主语言做标签（GitHub 自动检测语言）
+- 推荐标签：根据项目内容自动推断，人工确认后应用
+
+#### SEO-3: Badges（shields.io 静态 badge）
+
+在 README.md 顶部添加静态 badge（不依赖 CI）：
+
+```
+![Version](https://img.shields.io/badge/version-X.Y.Z-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platform](https://img.shields.io/badge/platform-Claude%20Code-purple)
+```
+
+Badge 规则：
+- License badge：从 LICENSE 文件检测
+- Version badge：从 SKILL.md frontmatter 读取
+- Platform badge：固定为 Claude Code
+- Tests badge：如果 tests/ 存在则添加
+- 手动 URL，不依赖 CI 状态 API
+
+#### SEO-4: README 结构检查
+
+检查 README.md 是否包含以下结构，缺少则建议补充：
+- **是什么**：一句话描述项目功能
+- **给谁用**：目标用户和使用场景
+- **怎么用**：安装和使用步骤
+- **技术栈**：关键技术说明
+
+关键词自然分布在正文和标题中，不写 Keywords 段落。
+
+#### SEO-5: 提交并推送
+
+```bash
+git add README.md docs/images/ 2>/dev/null
+git commit -m "docs: SEO optimization for GitHub visibility"
+git push github CURRENT_BRANCH
+```
 
 ### --ci 模块
 
-<!-- 迭代 3 实现 -->
+> 推送成功后执行。不可与 `--scan-only` / `--dry-run` 组合。
+
+#### CI-1: 项目类型检测
+
+自动检测项目类型和测试框架：
+
+```bash
+# 检测语言
+ls *.py setup.py pyproject.toml requirements*.txt 2>/dev/null  # Python
+ls package.json tsconfig.json 2>/dev/null                      # Node.js
+find . -name "*.sh" -not -path "./.git/*" | head -5            # Bash
+
+# 检测测试框架
+grep -rl "pytest\|unittest" tests/ 2>/dev/null                 # Python test
+grep -rl "jest\|mocha\|vitest" . --include="*.json" 2>/dev/null # JS test
+
+# 检测系统依赖
+grep -rl "tmux\|selenium\|chromium" . --include="*.py" --include="*.sh" --include="*.js" 2>/dev/null
+```
+
+#### CI-2: 平台矩阵决策
+
+| 项目类型 | 系统依赖 | 平台矩阵 |
+|----------|---------|----------|
+| Bash/tmux 项目 | tmux 等 | `ubuntu-latest` + `macos-latest` |
+| 纯 Python | 无 | 三平台（注意 `PYTHONUTF8: "1"`） |
+| 纯 Python | tmux/selenium | 按依赖选平台 |
+| Node.js | 无 | 三平台 |
+| 跨平台 GUI | — | `ubuntu-latest` + `macos-latest` + `windows-latest` |
+
+#### CI-3: 生成 .github/workflows/test.yml
+
+根据检测结果生成 CI 配置。模板包含：
+
+**Python 项目模板**：
+```yaml
+name: Tests
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]  # 按检测结果调整
+        python-version: ['3.10', '3.12']
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+```
+
+**Bash 项目模板**：
+```yaml
+name: Tests
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: bash scripts/run_tests.sh
+```
+
+#### CI-4: 确认并推送
+
+```
+AskUserQuestion: CI 配置已生成
+  A) 直接推送
+  B) 我先看看再决定
+  C) 不需要 CI
+```
+
+确认后：
+```bash
+git add .github/workflows/test.yml
+git commit -m "ci: add GitHub Actions test workflow"
+git push github CURRENT_BRANCH
+```
 
 ## 注意事项
 
