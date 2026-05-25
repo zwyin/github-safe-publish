@@ -11,7 +11,7 @@ if python3 -m pytest tests/ -v --tb=short; then
     SKILL="skills/github-safe-publish/SKILL.md"
     RULES="docs/scanning-rules.md"
 
-    for f in "$SKILL" "$RULES" "CLAUDE.md" "LICENSE"; do
+    for f in "$SKILL" "$RULES" "CLAUDE.md" "LICENSE" ".claude-plugin/plugin.json" ".claude-plugin/marketplace.json" "CHANGELOG.md"; do
         if [ -f "$f" ]; then
             echo "   ✓ $f"
         else
