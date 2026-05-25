@@ -19,11 +19,11 @@ SSH 密钥绑定 `openclaw-jarvis-lab` 账户，无法推送到 `zwyin/` 仓库�
 | # | 文件 | 位置 | 说明 |
 |---|------|------|------|
 | 1 | `skills/github-safe-publish/SKILL.md` | frontmatter `version: "X.Y.Z"` | **唯一版本源** |
-| 2 | `.claude-plugin/plugin.json` | `"version": "X.Y.Z"` | 迭代 4 创建 |
-| 3 | `.claude-plugin/marketplace.json` | `"version": "X.Y.Z"` | 迭代 4 创建 |
-| 4 | `README.md` | version badge URL | 迭代 4 创建 |
-| 5 | `CHANGELOG.md` | 版本标题 | 迭代 4 创建 |
-| 6 | `scripts/release.sh` | 读取并同步 | 迭代 4 创建 |
+| 2 | `.claude-plugin/plugin.json` | `"version": "X.Y.Z"` | |
+| 3 | `.claude-plugin/marketplace.json` | `"version": "X.Y.Z"` | |
+| 4 | `README.md` | version badge URL | |
+| 5 | `CHANGELOG.md` | 版本标题 | |
+| 6 | `scripts/release.sh` | 读取并同步 | |
 
 所有 6 处位置均已存在。
 

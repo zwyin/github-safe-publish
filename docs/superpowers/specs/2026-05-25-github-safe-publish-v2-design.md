@@ -462,15 +462,16 @@ github-safe-publish/
 
 ## 7. 不做的事（一期）
 
-- 多平台适配（Cursor / Windsurf / OpenCode）—— 架构预留，后续实现
 - 规则外部配置文件（类似 Gitleaks TOML）—— 一期规则内嵌在 SKILL.md 中
 - AI 模型切换/调优 —— 使用 Claude Code 默认模型
 - 国际化（skill 本身的 i18n）—— 一期中英混合文档
 
 ## 8. 迭代节奏
 
-1. **迭代 1：脱敏扫描核心** —— 两层扫描架构 + 修复流程 + 验证脚本
-2. **迭代 2：发布流程** —— 仓库创建 + 推送 + 备份机制
-3. **迭代 3：可选模块** —— SEO + CI 生成
-4. **迭代 4：项目工程化** —— plugin 结构、CI、README、marketplace
-5. **迭代 5：多平台适配** —— convert.sh + Cursor/Windsurf/OpenCode 文件
+1. **迭代 1：脱敏扫描核心** ✅ —— 两层扫描架构 + 修复流程 + 验证脚本
+2. **迭代 2：发布流程** ✅ —— 仓库创建 + 推送 + 备份机制
+3. **迭代 3：可选模块** ✅ —— SEO + CI 生成
+4. **迭代 4：项目工程化** ✅ —— plugin 结构、CI、README、marketplace
+5. **迭代 5：多平台适配** ✅ —— convert.sh + Cursor/Windsurf/OpenCode 文件
+6. **5 轮独立 review** ✅ —— 规则计数、正则修复、流程逻辑、跨文件一致性、工程文件
+7. **Dogfooding + 发布** ✅ —— 用 skill 自身发布到 GitHub，SEO 优化，Release 创建
