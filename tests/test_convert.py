@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONVERT_SH = ROOT / "scripts" / "convert.sh"
 DIST = ROOT / "dist"
+CURSOR_RULES = DIST / "cursor" / ".cursor" / "rules"
 
 
 def _run_convert(flag):
@@ -25,38 +26,48 @@ def _skill_version():
 
 
 class TestConvertCursor:
-    def test_generates_mdc_files(self):
+    def test_generates_per_step_files(self):
         _run_convert("--cursor")
-        rules_dir = DIST / "cursor" / ".cursor" / "rules"
-        assert (rules_dir / "github-safe-publish.mdc").exists()
-        assert (rules_dir / "github-safe-publish-modules.mdc").exists()
+        assert (CURSOR_RULES / "github-safe-publish-overview.mdc").exists()
+        for step in range(1, 7):
+            assert (CURSOR_RULES / f"github-safe-publish-step{step}.mdc").exists()
+        assert (CURSOR_RULES / "github-safe-publish-modules.mdc").exists()
 
-    def test_mdc_has_yaml_frontmatter(self):
+    def test_overview_has_yaml_frontmatter(self):
         _run_convert("--cursor")
-        content = (DIST / "cursor" / ".cursor" / "rules" / "github-safe-publish.mdc").read_text()
+        content = (CURSOR_RULES / "github-safe-publish-overview.mdc").read_text()
         assert content.startswith("---\n")
         assert "description:" in content
         assert "alwaysApply: false" in content
-        # Second --- closes frontmatter
-        assert content.index("---", 3) > 0
 
-    def test_mdc_contains_steps(self):
+    def test_step_files_contain_step_content(self):
         _run_convert("--cursor")
-        content = (DIST / "cursor" / ".cursor" / "rules" / "github-safe-publish.mdc").read_text()
-        for step in ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5", "Step 6"]:
-            assert step in content, f"Missing {step} in core workflow"
+        for step in range(1, 7):
+            content = (CURSOR_RULES / f"github-safe-publish-step{step}.mdc").read_text()
+            assert f"Step {step}" in content, f"step{step}.mdc missing 'Step {step}'"
 
     def test_modules_mdc_contains_optional_modules(self):
         _run_convert("--cursor")
-        content = (DIST / "cursor" / ".cursor" / "rules" / "github-safe-publish-modules.mdc").read_text()
+        content = (CURSOR_RULES / "github-safe-publish-modules.mdc").read_text()
         assert "SEO" in content or "seo" in content.lower()
         assert "CI" in content or "ci" in content.lower()
 
-    def test_mdc_version_in_description(self):
+    def test_version_in_all_files(self):
         _run_convert("--cursor")
-        content = (DIST / "cursor" / ".cursor" / "rules" / "github-safe-publish.mdc").read_text()
         version = _skill_version()
-        assert version in content
+        for f in CURSOR_RULES.glob("*.mdc"):
+            content = f.read_text()
+            assert version in content, f"{f.name} missing version {version}"
+
+    def test_no_monolithic_file(self):
+        _run_convert("--cursor")
+        assert not (CURSOR_RULES / "github-safe-publish.mdc").exists()
+
+    def test_step_files_reasonable_size(self):
+        _run_convert("--cursor")
+        for f in CURSOR_RULES.glob("github-safe-publish-step*.mdc"):
+            lines = f.read_text().count("\n")
+            assert lines < 300, f"{f.name} has {lines} lines, should be < 300"
 
 
 class TestConvertWindsurf:
@@ -98,7 +109,7 @@ class TestConvertOpenCode:
 class TestConvertAll:
     def test_all_generates_all_formats(self):
         _run_convert("--all")
-        assert (DIST / "cursor" / ".cursor" / "rules" / "github-safe-publish.mdc").exists()
+        assert (CURSOR_RULES / "github-safe-publish-step1.mdc").exists()
         assert (DIST / "windsurf" / ".windsurfrules").exists()
         assert (DIST / "opencode" / "AGENTS.md").exists()
 

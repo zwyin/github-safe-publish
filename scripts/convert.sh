@@ -9,6 +9,8 @@
 #   ./scripts/convert.sh --list       # List supported platforms
 
 set -euo pipefail
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SKILL_MD="$ROOT/skills/github-safe-publish/SKILL.md"
@@ -34,45 +36,67 @@ _skill_description() {
 _convert_cursor() {
     local cursor_dir="$OUT_DIR/cursor/.cursor/rules"
     mkdir -p "$cursor_dir"
+    rm -f "$cursor_dir"/*.mdc
 
     local version
     version=$(_skill_version)
-    local desc
-    desc=$(_skill_description)
-
-    # Split into 2 files:
-    # 1. Core workflow (Steps 1-6)
-    # 2. Optional modules (--seo, --ci)
 
     local body
     body=$(_skill_body)
+    local total_lines
+    total_lines=$(echo "$body" | wc -l | tr -d ' ')
 
-    # Find line numbers for section splits
-    local modules_line
-    modules_line=$(echo "$body" | grep -n '^## 可选模块' | head -1 | cut -d: -f1)
-    local notes_line
-    notes_line=$(echo "$body" | grep -n '^## 注意事项' | head -1 | cut -d: -f1)
-
-    if [ -z "$modules_line" ]; then
-        modules_line=$(echo "$body" | wc -l | tr -d ' ')
-    fi
-
-    # Core workflow file (everything before 可选模块)
-    cat > "$cursor_dir/github-safe-publish.mdc" <<HEREDOC
+    # 1. Overview file: 参数 + 前提 (everything before Step 1)
+    local step1_line
+    step1_line=$(echo "$body" | grep -n '^## Step 1' | head -1 | cut -d: -f1 || true)
+    if [ -n "$step1_line" ] && [ "$step1_line" -gt 1 ]; then
+        cat > "$cursor_dir/github-safe-publish-overview.mdc" <<HEREDOC
 ---
-description: Safely publish local Git projects to GitHub with two-layer desensitization scanning, auto-fix, backup, and end-to-end publishing workflow (v${version})
+description: GitHub Safe Publish overview, parameters, and prerequisites (v${version})
 globs:
 alwaysApply: false
 ---
 
-$(echo "$body" | head -n $((modules_line - 1)))
+$(echo "$body" | head -n $((step1_line - 1)))
+HEREDOC
+    fi
+
+    # 2. Per-step files (Steps 1-6)
+    local prev_line=$step1_line
+    for step in 1 2 3 4 5 6; do
+        local next_step=$((step + 1))
+        local next_line
+        next_line=$(echo "$body" | grep -n "^## Step ${next_step}" | head -1 | cut -d: -f1 || true)
+        if [ -z "$next_line" ]; then
+            next_line=$(echo "$body" | grep -n '^## 可选模块' | head -1 | cut -d: -f1 || true)
+        fi
+        if [ -z "$next_line" ]; then
+            next_line=$((total_lines + 1))
+        fi
+
+        local step_title
+        step_title=$(echo "$body" | sed -n "${prev_line}p" | sed 's/^## //')
+
+        cat > "$cursor_dir/github-safe-publish-step${step}.mdc" <<HEREDOC
+---
+description: ${step_title} (v${version})
+globs:
+alwaysApply: false
+---
+
+$(echo "$body" | sed -n "${prev_line},$((next_line - 1))p")
 HEREDOC
 
-    # Optional modules file
-    if [ -n "$modules_line" ] && [ "$modules_line" -gt 0 ]; then
+        prev_line=$next_line
+    done
+
+    # 3. Optional modules file
+    local modules_line
+    modules_line=$(echo "$body" | grep -n '^## 可选模块' | head -1 | cut -d: -f1 || true)
+    if [ -n "$modules_line" ]; then
         cat > "$cursor_dir/github-safe-publish-modules.mdc" <<HEREDOC
 ---
-description: Optional SEO and CI modules for github-safe-publish (v${version})
+description: Optional --seo and --ci modules (v${version})
 globs:
 alwaysApply: false
 ---
@@ -82,7 +106,7 @@ HEREDOC
     fi
 
     echo "Cursor: $cursor_dir/"
-    ls -la "$cursor_dir/"
+    wc -l "$cursor_dir"/*.mdc
 }
 
 # --- Windsurf ---
