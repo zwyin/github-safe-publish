@@ -115,7 +115,7 @@ github-safe-publish/
 ├── scripts/
 │   ├── release.sh           # Version bump + tag
 │   └── validate_skill.sh    # One-click validation
-├── tests/                   # 73 tests
+├── tests/                   # 225 tests
 ├── CHANGELOG.md
 ├── CLAUDE.md
 └── LICENSE

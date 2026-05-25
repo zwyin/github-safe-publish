@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="${1:?Usage: $0 <version> [--bump-only] [--dry-run]}"
+VERSION="${1:?Usage: $0 <version> [--bump-only | --dry-run]}"
 MODE="${2:-}"
 
 DRY_RUN=false
@@ -32,7 +32,7 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 # Read current version from SKILL.md frontmatter (single source of truth)
-CURRENT_VERSION=$(grep '^version:' "$SKILL_MD" | head -1 | sed 's/version: *//;s/"//g;s/ //g')
+CURRENT_VERSION=$(grep '^version:' "$SKILL_MD" | head -1 | perl -pe 's/version: *//;s/"//g;s/ //g')
 if [ -z "$CURRENT_VERSION" ]; then
     echo "ERROR: Cannot read version from $SKILL_MD frontmatter" >&2
     exit 1
@@ -58,39 +58,25 @@ bash scripts/validate_skill.sh
 echo "==> Bumping version to $VERSION..."
 
 # 1. Update SKILL.md frontmatter
-sed -i.bak "s/^version: \"${CURRENT_VERSION}\"/version: \"${VERSION}\"/" "$SKILL_MD"
-rm -f "$SKILL_MD.bak"
+perl -pi -e "s/^version: \"\Q$CURRENT_VERSION\E\"/version: \"$VERSION\"/" "$SKILL_MD"
 
 # 2. Update plugin.json
-sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PLUGIN_JSON"
-rm -f "$PLUGIN_JSON.bak"
+perl -pi -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PLUGIN_JSON"
 
 # 3. Update marketplace.json
-sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$MARKETPLACE_JSON"
-rm -f "$MARKETPLACE_JSON.bak"
+perl -pi -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$MARKETPLACE_JSON"
 
 # 4. Update README version badge (if exists)
 if [ -f README.md ]; then
-    sed -i.bak "s/badge\/version-[^-]*-/badge\/version-${VERSION}-/" README.md
-    rm -f README.md.bak
+    perl -pi -e "s/badge\/version-[^-]*-/badge\/version-${VERSION}-/" README.md
 fi
 
 # 5. Update CHANGELOG [Unreleased] → [VERSION]
 TODAY=$(date +%Y-%m-%d)
 if grep -q "## \[Unreleased\]" CHANGELOG.md; then
-    sed -i.bak "s/## \[Unreleased\]/## [$VERSION] - $TODAY/" CHANGELOG.md
-    rm -f CHANGELOG.md.bak
+    perl -pi -e "s/## \\[Unreleased\\]/## [$VERSION] - $TODAY/" CHANGELOG.md
 else
-    sed -i.bak "/The format is based on/a\\
-
-## [$VERSION] - $TODAY
-
-### Added
-
-### Changed
-
-### Fixed" CHANGELOG.md
-    rm -f CHANGELOG.md.bak
+    perl -pi -e "if (/The format is based on/) { \$_ .= qq(\n## [$VERSION] - $TODAY\n\n### Added\n\n### Changed\n\n### Fixed\n) }" CHANGELOG.md
 fi
 
 echo "==> Committing version bump..."
