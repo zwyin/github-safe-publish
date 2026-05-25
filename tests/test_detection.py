@@ -296,3 +296,192 @@ class TestInfraDetectionExtended:
 
     def test_vpn_or_proxy_config(self):
         _detects("vpn-or-proxy-config", 'proxy = "10.0.0.1"')
+
+
+# --- Dimension A: AWS extended ---
+
+class TestAWSExtended:
+    def test_aws_secret_access_key(self):
+        _detects("aws-secret-access-key",
+                 'aws_secret = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij0123"')
+
+    def test_aws_bedrock_api_key(self):
+        _detects("aws-amazon-bedrock-api-key",
+                 "ABSK" + "a" * 109)
+
+
+# --- Dimension A: Stripe / Payment ---
+
+class TestPaymentTokens:
+    def test_stripe_restricted_key(self):
+        _detects("stripe-restricted-key", "rk_live_" + "a" * 24)
+
+    def test_square_access_token(self):
+        _detects("square-access-token",
+                 "EAAA" + "a" * 30)
+
+    def test_flutterwave_secret_key(self):
+        _detects("flutterwave-secret-key",
+                 "FLWSECK_TEST-" + "a" * 32 + "-X")
+
+    def test_plaid_secret_key(self):
+        _detects("plaid-secret-key",
+                 'plaid_secret = "' + "a" * 30 + '"')
+
+
+# --- Dimension A: Azure / Okta / Dynatrace ---
+
+class TestEnterpriseTokens:
+    def test_azure_ad_client_secret(self):
+        _detects("azure-ad-client-secret",
+                 "abc1Q~" + "a" * 32)
+
+    def test_okta_access_token(self):
+        _detects("okta-access-token",
+                 'OKTA_API_TOKEN = "00' + "a" * 40 + '"')
+
+    def test_dynatrace_api_token(self):
+        _detects("dynatrace-api-token",
+                 "dt0c01." + "a" * 24 + "." + "a" * 64)
+
+    def test_hashicorp_tf_token(self):
+        _detects("hashicorp-tf-api-token",
+                 "abcdefghijklmn.atlasv1." + "a" * 65)
+
+
+# --- Dimension A: SaaS monitoring ---
+
+class TestMonitoringTokens:
+    def test_datadog_token(self):
+        _detects("datadog-access-token",
+                 'datadog_api_key = "' + "a" * 40 + '"')
+
+    def test_snyk_token(self):
+        _detects("snyk-api-token",
+                 'snyk_api_key = "12345678-1234-1234-1234-123456789012"')
+
+    def test_sentry_token(self):
+        _detects("sentry-access-token",
+                 'sentry_auth_token = "' + "a" * 64 + '"')
+
+    def test_grafana_api_key(self):
+        _detects("grafana-api-key",
+                 "eyJrIjoi" + "a" * 72)
+
+    def test_new_relic_key(self):
+        _detects("new-relic-user-api-key",
+                 'NEW_RELIC_API_KEY = "NRAK-' + "a" * 27 + '"')
+
+    def test_sentry_dsn(self):
+        _detects("sentry-dsn",
+                 "https://" + "a" * 32 + "@o123456.ingest.sentry.io/789012")
+
+
+# --- Dimension A: Communication extended ---
+
+class TestCommsExtended:
+    def test_slack_user_token(self):
+        prefix = "xoxp-"
+        _detects("slack-user-token",
+                 f"{prefix}0000000000-0000000000000-0000000000000-"
+                 + "a" * 30)
+
+    def test_telegram_bot_token(self):
+        _detects("telegram-bot-api-token",
+                 'telegram_token = "123456789:A' + "b" * 34 + '"')
+
+    def test_discord_token(self):
+        _detects("discord-api-token",
+                 'discord_token = "' + "a" * 55 + '"')
+
+    def test_mattermost_token(self):
+        _detects("mattermost-access-token",
+                 'mattermost_token = "' + "a" * 26 + '"')
+
+    def test_microsoft_teams_webhook(self):
+        _detects("microsoft-teams-webhook",
+                 "https://abc.webhook.office.com/webhookb2/"
+                 "12345678-1234-1234-1234-123456789012@"
+                 "12345678-1234-1234-1234-123456789012/"
+                 "IncomingWebhook/" + "a" * 32 + "/"
+                 "12345678-1234-1234-1234-123456789012")
+
+
+# --- Dimension A: Cloudflare / CDN ---
+
+class TestCDNTokens:
+    def test_cloudflare_origin_ca_key(self):
+        _detects("cloudflare-origin-ca-key",
+                 "v1.0-" + "a" * 24 + "-" + "b" * 146)
+
+    def test_fastly_token(self):
+        _detects("fastly-api-token",
+                 'fastly_api_key = "' + "a" * 32 + '"')
+
+    def test_ngrok_token(self):
+        _detects("ngrok-auth-token",
+                 'ngrok_authtoken = "' + "a" * 24 + "_" + "b" * 32 + '"')
+
+
+# --- Dimension A: Misc SaaS ---
+
+class TestMiscSaaS:
+    def test_mailchimp_key(self):
+        _detects("mailchimp-api-key",
+                 'mailchimp_key = "' + "a" * 32 + '-us01"')
+
+    def test_mailgun_token(self):
+        _detects("mailgun-private-api-token",
+                 'mailgun_api_key = "key-' + "a" * 32 + '"')
+
+    def test_contentful_token(self):
+        _detects("contentful-delivery-api-token",
+                 'contentful_access_token = "' + "a" * 43 + '"')
+
+    def test_atlassian_token(self):
+        _detects("atlassian-api-token",
+                 "ATATT3" + "a" * 186)
+
+    def test_confluent_access_token(self):
+        _detects("confluent-access-token",
+                 'confluent_api_key = "' + "a" * 20 + '"')
+
+    def test_clickhouse_secret(self):
+        _detects("clickhouse-cloud-api-secret",
+                 'clickhouse_api_secret = "' + "a" * 32 + '"')
+
+    def test_dropbox_token(self):
+        _detects("dropbox-api-token",
+                 'dropbox_access_token = "sl.' + "a" * 110 + '"')
+
+
+# --- Dimension A: Generic patterns ---
+
+class TestGenericPatterns:
+    def test_curl_auth_header(self):
+        _detects("curl-auth-header",
+                 'curl -H "Authorization: Bearer abc123def456ghi789"')
+
+    def test_generic_api_key(self):
+        _detects("generic-api-key",
+                 'api_key = "aB3dE7fG9hJ2kL5mN8pQ"')
+
+
+# --- Dimension B: PII financial ---
+
+class TestPIIFinancial:
+    def test_credit_card_visa(self):
+        _detects("credit-card-number",
+                 "4111111111111111")
+
+    def test_bank_card_cn(self):
+        _detects("bank-card-number-cn",
+                 "6222021234567890123")
+
+
+# --- Dimension C: Infrastructure URL ---
+
+class TestInfraURL:
+    def test_internal_url(self):
+        _detects("internal-url",
+                 "http://nas.local:8080/api/config")
