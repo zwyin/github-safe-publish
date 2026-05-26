@@ -287,6 +287,8 @@ def test_step6_generates_report_file(skill_text):
     step6 = _extract_step(skill_text, 6)
     assert "safe-publish-report-YYYYMMDD-HHMM.md" in step6, \
         "Step 6 must define exact report file path pattern"
+    assert "safe-publish-report-*.md" in step6, \
+        "Step 6 must use correct .gitignore glob pattern"
     assert ".gitignore" in step6, "Step 6 must update .gitignore with report pattern"
 
 
@@ -308,3 +310,12 @@ def test_report_filename_has_timestamp(skill_text):
 def test_no_scan_only_references(skill_text):
     """不应残留 --scan-only 旧参数名"""
     assert "--scan-only" not in skill_text, "Found deprecated --scan-only, should be --scan"
+
+
+def test_report_content_differs_by_mode(skill_text):
+    """Step 6 报告内容应按模式区分：--scan 无修复建议，--dry-run 有修复建议"""
+    step6 = _extract_step(skill_text, 6)
+    assert "修复方案" in step6 or "修复建议" in step6, \
+        "Step 6 must describe fix suggestions for --dry-run mode"
+    assert "扫描结果" in step6 or "发现列表" in step6, \
+        "Step 6 must describe scan results for --scan mode"

@@ -907,8 +907,8 @@ Layer 2 (AI Semantic):
   Additional findings: N items
 
 Detailed findings:
-  [CRITICAL] file:line | rule-name | ma...ed (前后各显示3字符，中间用...替代)
-  [WARNING]  file:line | rule-name | ma...ed (前后各显示3字符，中间用...替代)
+  [CRITICAL] file:line | rule-name | ghp...xyz (前后各显示3字符，中间用...替代)
+  [WARNING]  file:line | rule-name | ghp...xyz (前后各显示3字符，中间用...替代)
   ...
 
 Recommendation: Fix CRITICAL items before publishing. Run without --scan to auto-fix.
@@ -951,7 +951,7 @@ fi
 
 仅在 `.gitignore` 不包含该模式时追加，避免重复。
 
-**终端确认**：
+**写入失败降级**：如果报告文件写入失败（磁盘满/权限不足），输出警告但不阻塞流程，将报告内容直接打印到终端作为降级方案。
 
 ```
 📄 报告已保存至 safe-publish-report-20260526-1430.md
