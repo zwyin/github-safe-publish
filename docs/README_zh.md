@@ -107,23 +107,44 @@ Step 5: 仓库决策 + 推送（集中交互，通过 gh CLI）
 Step 6: 验证 + 输出报告
 ```
 
+## 关于 135 条规则
+
+你可能会问：Gitleaks 有约 120 条规则，TruffleHog 有 873+ 检测器——为什么我们只有 135？
+
+**不同维度的比较。** TruffleHog 的 873 个检测器是单维度的（仅限 API 密钥），大部分覆盖长尾 SaaS 服务。我们的 135 条规则横跨 **6 个维度**——密钥/凭证（100）、数据库连接字符串（5）、个人身份信息（8）、内部基础设施（6）、文件黑名单（12）、Git 历史（4）。我们与 TruffleHog 在约 50 个主流服务商上有重叠（AWS、Azure、GCP、GitHub、Stripe 等），同时也覆盖了他们不检测的 15 个服务商（npm、DigitalOcean、Cloudflare、Telegram、Discord 等）。
+
+真正的差异不在规则数量——而在检测**之后**发生的事：AI 语义分析捕获正则无法覆盖的语义泄露，自动修复将密钥替换为占位符，端到端流程处理仓库创建和推送。没有其他工具提供这个完整流水线。
+
 ## 安装
 
-### Claude Code 插件（推荐）
+### Claude Code（推荐）
 
 ```bash
-# 从 marketplace 安装（即将推出）
-claude plugin add github-safe-publish
+# 1. 添加 marketplace
+/plugin marketplace add zwyin/github-safe-publish
 
-# 或手动安装
-git clone https://github.com/zwyin/github-safe-publish.git
-cd github-safe-publish
-claude plugin add .
+# 2. 安装插件
+/plugin install github-safe-publish@github-safe-publish
 ```
+
+安装后直接在任意项目中使用 `/github-safe-publish` 命令。
 
 ### 手动安装
 
-将 `skills/github-safe-publish/SKILL.md` 复制到你的项目 skill 目录。
+```bash
+git clone https://github.com/zwyin/github-safe-publish.git
+claude --plugin-dir ./github-safe-publish
+```
+
+或将 `skills/github-safe-publish/SKILL.md` 复制到你的项目 skill 目录。
+
+### 其他平台
+
+| 平台 | 安装方式 |
+|------|---------|
+| **Cursor** | 复制 `dist/cursor/*.mdc` 到项目的 `.cursor/rules/` 目录 |
+| **Windsurf** | 复制 `dist/windsurf/.windsurfrules` 到项目的 `.windsurf/rules/` 目录 |
+| **OpenCode** | 复制 `dist/opencode/AGENTS.md` 到项目的 `.opencode/skills/` 目录 |
 
 ## 测试
 

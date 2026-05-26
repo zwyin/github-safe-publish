@@ -72,23 +72,44 @@ Step 6: Verification + report
 
 See [docs/scanning-rules.md](docs/scanning-rules.md) for the complete regex reference.
 
+## About the 135 Rules
+
+You might wonder: Gitleaks has ~120 rules, TruffleHog has 873+ detectors — why only 135?
+
+**Apples vs oranges.** TruffleHog's 873 detectors are single-dimensional (API keys only), mostly covering niche SaaS services. Our 135 rules span **6 dimensions** — keys/credentials (100), database connection strings (5), PII (8), internal infrastructure (6), file blacklist (12), and git history (4). We overlap with TruffleHog on ~50 popular providers (AWS, Azure, GCP, GitHub, Stripe, etc.) and cover 15 providers they don't (npm, DigitalOcean, Cloudflare, Telegram, Discord, etc.).
+
+The real differentiator isn't rule count — it's what happens **after** detection: AI semantic analysis catches what regexes miss, auto-fix replaces secrets with placeholders, and the end-to-end workflow handles repo creation and push. No other tool does this pipeline.
+
 ## Installation
 
-### Claude Code Plugin (recommended)
+### Claude Code (recommended)
 
 ```bash
-# Install from marketplace (coming soon)
-claude plugin add github-safe-publish
+# 1. Add marketplace
+/plugin marketplace add zwyin/github-safe-publish
 
-# Or install manually
-git clone https://github.com/zwyin/github-safe-publish.git
-cd github-safe-publish
-claude plugin add .
+# 2. Install plugin
+/plugin install github-safe-publish@github-safe-publish
 ```
+
+After installation, use `/github-safe-publish` in any project.
 
 ### Manual
 
-Copy `skills/github-safe-publish/SKILL.md` to your project's skill directory.
+```bash
+git clone https://github.com/zwyin/github-safe-publish.git
+claude --plugin-dir ./github-safe-publish
+```
+
+Or copy `skills/github-safe-publish/SKILL.md` to your project's skill directory.
+
+### Other Platforms
+
+| Platform | Install |
+|----------|---------|
+| **Cursor** | Copy `dist/cursor/*.mdc` files to `.cursor/rules/` |
+| **Windsurf** | Copy `dist/windsurf/.windsurfrules` to `.windsurf/rules/` |
+| **OpenCode** | Copy `dist/opencode/AGENTS.md` to `.opencode/skills/` |
 
 ## Testing
 
