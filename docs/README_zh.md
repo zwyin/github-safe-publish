@@ -143,7 +143,9 @@ Please install github-safe-publish from github.com/zwyin/github-safe-publish
 npx skills add zwyin/github-safe-publish
 ```
 
-### 方式 5：ClawHub
+### 方式 5：ClawHub（即将支持）
+
+> 尚未发布到 ClawHub 注册表。关注 [github.com/zwyin/github-safe-publish](https://github.com/zwyin/github-safe-publish) 了解进展。
 
 ```bash
 clawhub install github-safe-publish

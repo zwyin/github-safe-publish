@@ -108,7 +108,9 @@ Please install github-safe-publish from github.com/zwyin/github-safe-publish
 npx skills add zwyin/github-safe-publish
 ```
 
-### Option 5: ClawHub
+### Option 5: ClawHub (coming soon)
+
+> Not yet published to ClawHub registry. Track progress at [github.com/zwyin/github-safe-publish](https://github.com/zwyin/github-safe-publish).
 
 ```bash
 clawhub install github-safe-publish
