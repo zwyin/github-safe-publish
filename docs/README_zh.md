@@ -76,7 +76,7 @@ GitHub Safe Publish 用 **确定性规则扫描**（135 条正则，覆盖 6 个
 
 ```
 /github-safe-publish                    # 完整流程：扫描 → 修复 → 发布
-/github-safe-publish --scan-only        # 只做脱敏扫描，输出报告，不修复不发布
+/github-safe-publish --scan             # 只扫描——报告有什么问题，不修复
 /github-safe-publish --dry-run          # 扫描 + 展示修复建议，不做任何实际修改
 /github-safe-publish --seo              # 完整流程 + SEO 优化
 /github-safe-publish --ci               # 完整流程 + CI 工作流生成
@@ -85,8 +85,8 @@ GitHub Safe Publish 用 **确定性规则扫描**（135 条正则，覆盖 6 个
 
 ### 流程控制
 
-| 步骤 | 完整流程 | --scan-only | --dry-run |
-|------|---------|-------------|-----------|
+| 步骤 | 完整流程 | --scan | --dry-run |
+|------|---------|--------|-----------|
 | 1. 前置检查 | 执行 | 执行 | 执行 |
 | 2. 创建备份分支 | 执行 | 跳过 | 跳过 |
 | 3. 两层脱敏扫描 | 执行 | 执行 | 执行 |

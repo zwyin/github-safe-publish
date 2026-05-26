@@ -28,8 +28,8 @@ GitHub Safe Publish combines **deterministic rule scanning** (135 regex rules ac
 
 ```
 /github-safe-publish                    # Full flow: scan → fix → publish
-/github-safe-publish --scan-only        # Scan only, output report, no fix/publish
-/github-safe-publish --dry-run          # Scan + show fix suggestions, no actual changes
+/github-safe-publish --scan             # Scan only — report what's wrong, no fixes
+/github-safe-publish --dry-run          # Scan + show suggested fixes, no actual changes
 /github-safe-publish --seo              # Full flow + SEO optimization
 /github-safe-publish --ci               # Full flow + CI workflow generation
 /github-safe-publish --seo --ci         # Everything
@@ -37,8 +37,8 @@ GitHub Safe Publish combines **deterministic rule scanning** (135 regex rules ac
 
 ### Flow Control
 
-| Step | Full | --scan-only | --dry-run |
-|------|------|-------------|-----------|
+| Step | Full | --scan | --dry-run |
+|------|------|--------|-----------|
 | 1. Pre-flight checks | yes | yes | yes |
 | 2. Backup branch | yes | skip | skip |
 | 3. Two-layer scan | yes | yes | yes |

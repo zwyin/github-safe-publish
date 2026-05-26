@@ -6,7 +6,7 @@ description: |
   （确定性规则 + AI 语义）、自动修复、备份回滚、仓库创建、SEO 优化。
   Use when: "push to github", "publish to github", "开源", "推送到 GitHub",
   "create github repo", "发布到 github"。
-argument-hint: "[--scan-only] [--dry-run] [--seo] [--ci]"
+argument-hint: "[--scan] [--dry-run] [--seo] [--ci]"
 triggers:
   - push to github
   - publish to github
@@ -35,19 +35,22 @@ allowed-tools:
 /github-safe-publish --seo              # 核心 + SEO 优化
 /github-safe-publish --ci               # 核心 + CI 生成
 /github-safe-publish --seo --ci         # 全部
-/github-safe-publish --scan-only        # 只做脱敏扫描，输出报告，不修复不发布
+/github-safe-publish --scan        # 只做脱敏扫描，输出报告，不修复不发布
 /github-safe-publish --dry-run          # 模拟完整流程：扫描+模拟修复建议，但不做任何实际修改
 ```
 
 **参数互斥与冲突处理**：
-- `--scan-only` 和 `--dry-run` 不能与 `--seo` / `--ci` 组合（SEO 和 CI 只对已推送的仓库有意义，扫描模式不推送）
+- `--scan` 和 `--dry-run` 不能与 `--seo` / `--ci` 组合（SEO 和 CI 只对已推送的仓库有意义，扫描模式不推送）
+- `--scan` 和 `--dry-run` 不能同时使用
 - `--seo` 和 `--ci` 可以同时使用（完整功能模式）
 - 无效组合直接报错并退出
-- `--dry-run` 与 `--scan-only` 的区别：`--scan-only` 只输出扫描报告；`--dry-run` 在报告基础上还会展示每个发现项的推荐修复方案（但不执行修复）
+- **`--scan` 与 `--dry-run` 的区别**：
+  - `--scan`：**只告诉你有什么问题**。输出扫描报告（命中规则、文件位置、严重等级），不提修复方案。
+  - `--dry-run`：**告诉你有什么问题 + 打算怎么修**。在扫描报告基础上，为每个发现项展示推荐修复方案（如"将此密钥替换为 `REPLACE_ME_AWS`"），但不执行任何修改。
 
 **流程控制矩阵**：
 
-| 步骤 | 完整流程 | --scan-only | --dry-run |
+| 步骤 | 完整流程 | --scan | --dry-run |
 |------|---------|-------------|-----------|
 | Step 1: 前置检查+参数确认 | 执行 | 执行 | 执行 |
 | Step 2: 创建备份分支 | 执行 | 跳过 | 跳过 |
@@ -104,11 +107,11 @@ allowed-tools:
 
 ```
 无效组合检测：
-  --scan-only + --seo  → 报错："--scan-only 不能与 --seo 组合。SEO 优化只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
-  --scan-only + --ci   → 报错："--scan-only 不能与 --ci 组合。CI 生成只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
+  --scan + --seo  → 报错："--scan 不能与 --seo 组合。SEO 优化只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
+  --scan + --ci   → 报错："--scan 不能与 --ci 组合。CI 生成只对已推送的仓库有意义，扫描模式不推送。请使用完整流程模式。"
   --dry-run + --seo    → 报错："--dry-run 不能与 --seo 组合。SEO 优化需要实际推送，模拟模式不做推送。请使用完整流程模式。"
   --dry-run + --ci     → 报错："--dry-run 不能与 --ci 组合。CI 生成需要实际推送，模拟模式不做推送。请使用完整流程模式。"
-  --scan-only + --dry-run → 报错："--scan-only 和 --dry-run 不能同时使用。--scan-only 只输出扫描报告；--dry-run 在报告基础上还展示推荐修复方案。"
+  --scan + --dry-run → 报错："--scan 和 --dry-run 不能同时使用。--scan 只输出扫描报告；--dry-run 在报告基础上还展示推荐修复方案。"
 ```
 
 ### 1.2 集中交互确认
@@ -122,7 +125,7 @@ AskUserQuestion: 请确认工作模式
 
   A) 完整流程：脱敏扫描 → 自动修复 → 发布到 GitHub
      （适合准备公开发布的项目）
-  B) 仅扫描：只做脱敏检查，输出扫描报告，不修复不发布（--scan-only）
+  B) 仅扫描：只做脱敏检查，输出扫描报告，不修复不发布（--scan）
      （适合先了解项目中哪些内容需要处理）
   C) 模拟运行：扫描出报告，展示推荐修复方案，但不做任何实际修改（--dry-run）
      （适合预览完整流程，确认修复策略）
@@ -227,7 +230,11 @@ node_modules/
 ───────────────
 目标仓库：待扫描后确认（Step 5）
 备份分支：pre-publish-backup（Step 2 创建）
+报告文件：safe-publish-report-YYYYMMDD-HHMM.md（项目根目录）
 ━━━━━━━━━━━━━━━
+
+⚠️ 报告文件包含扫描到的敏感信息摘要，请勿提交到公开仓库。
+   建议扫描完成后删除，或确认 .gitignore 已包含 safe-publish-report-*.md。
 
 确认以上配置，开始执行？
 ```
@@ -236,9 +243,9 @@ node_modules/
 
 ## Step 2: 创建备份分支
 
-在任何修改之前创建回滚点。**仅在完整流程模式下执行**（`--scan-only` 和 `--dry-run` 跳过此步骤）。
+在任何修改之前创建回滚点。**仅在完整流程模式下执行**（`--scan` 和 `--dry-run` 跳过此步骤）。
 
-跳过原因：`--scan-only` 和 `--dry-run` 设计为纯只读操作，不修改任何文件或分支，子 agent 不被授予写入工具权限，因此无需备份。
+跳过原因：`--scan` 和 `--dry-run` 设计为纯只读操作，不修改任何文件或分支，子 agent 不被授予写入工具权限，因此无需备份。
 
 ### 2.1 创建流程
 
@@ -517,7 +524,7 @@ v1 采用 5 轮纯 AI 自由扫描，存在两个问题：(1) 每轮 AI 扫描�
 
 ## Step 4: 自动修复 + 用户确认
 
-根据 Step 3 扫描结果分类处理。`--scan-only` 模式跳过此步骤；`--dry-run` 模式输出修复建议但不执行任何修改。
+根据 Step 3 扫描结果分类处理。`--scan` 模式跳过此步骤；`--dry-run` 模式输出修复建议但不执行任何修改。
 
 ### 结果分类
 
@@ -721,7 +728,7 @@ Git 历史问题（K 项）：
 
 ## Step 5: 仓库决策确认 + 创建推送（集中交互 #2）
 
-> 仅完整流程模式执行。`--scan-only` / `--dry-run` 跳过此步骤。
+> 仅完整流程模式执行。`--scan` / `--dry-run` 跳过此步骤。
 
 脱敏通过后，在推送之前集中确认仓库属性。这些决策不可逆或难以逆转。
 
@@ -833,7 +840,7 @@ AskUserQuestion: 仓库 USERNAME/REPO_NAME 已存在
 ## Step 6: 验证 + 输出报告
 
 > 完整流程模式：验证仓库 + 完整报告。
-> `--scan-only`：仅扫描报告。
+> `--scan`：仅扫描报告。
 > `--dry-run`：扫描报告 + 修复建议。
 
 ### 6.1 仓库验证（仅自动推送模式）
@@ -883,7 +890,7 @@ Next steps:
   - Delete pre-publish-backup branch when confident
 ```
 
-**--scan-only 报告**：
+**--scan 报告**：
 
 ```
 === Scan Report ===
@@ -904,12 +911,12 @@ Detailed findings:
   [WARNING]  file:line | rule-name | matched content (redacted)
   ...
 
-Recommendation: Fix CRITICAL items before publishing. Run without --scan-only to auto-fix.
+Recommendation: Fix CRITICAL items before publishing. Run without --scan to auto-fix.
 ```
 
 **--dry-run 报告**：
 
-在 scan-only 报告基础上，追加每个发现项的建议修复方案：
+在 --scan 报告基础上，追加每个发现项的建议修复方案：
 
 ```
 Suggested fixes:
@@ -921,11 +928,41 @@ Suggested fixes:
     → Or replace with placeholder
 ```
 
+### 6.3 报告文件
+
+将上述报告内容写入文件。每次运行生成独立文件，不覆盖历史报告。
+
+**文件路径**: `safe-publish-report-YYYYMMDD-HHMM.md`（项目根目录，与 `.git` 同级）
+
+**多轮扫描不覆盖**：文件名包含精确到分钟的时间戳，重复运行生成新文件而非覆盖。
+
+**报告内容按模式区分**：
+- 完整流程：扫描结果 + 修复记录（每项：原内容 → 替换内容）+ 仓库 URL + 备份回滚指引
+- `--scan`：扫描结果 + 发现列表（CRITICAL / WARNING 分类，含文件路径和行号）
+- `--dry-run`：扫描结果 + 发现列表 + 每项推荐修复方案
+
+**自动更新 .gitignore**：
+
+```bash
+if ! grep -q "safe-publish-report-" .gitignore 2>/dev/null; then
+    echo "safe-publish-report-*.md" >> .gitignore
+fi
+```
+
+仅在 `.gitignore` 不包含该模式时追加，避免重复。
+
+**终端确认**：
+
+```
+📄 报告已保存至 safe-publish-report-20260526-1430.md
+⚠️ 此文件包含敏感信息摘要，请勿提交到公开仓库。
+```
+
 ## 可选模块
 
 ### --seo 模块
 
-> 推送成功后执行。不可与 `--scan-only` / `--dry-run` 组合。
+> 推送成功后执行。不可与 `--scan` / `--dry-run` 组合。
 
 #### SEO-1: Description 优化
 
@@ -985,7 +1022,7 @@ git push github CURRENT_BRANCH
 
 ### --ci 模块
 
-> 推送成功后执行。不可与 `--scan-only` / `--dry-run` 组合。
+> 推送成功后执行。不可与 `--scan` / `--dry-run` 组合。
 
 #### CI-1: 项目类型检测
 

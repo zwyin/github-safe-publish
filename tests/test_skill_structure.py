@@ -30,7 +30,7 @@ def test_frontmatter_version_is_semver(skill_frontmatter):
 # --- Parameters ---
 
 def test_skill_contains_all_parameters(skill_text):
-    params = ["--seo", "--ci", "--scan-only", "--dry-run"]
+    params = ["--seo", "--ci", "--scan", "--dry-run"]
     for param in params:
         assert param in skill_text, f"Missing parameter: {param}"
 
@@ -93,7 +93,7 @@ def test_step2_handles_stash_conflict(skill_text):
 
 def test_step2_skips_in_scan_modes(skill_text):
     step2 = _extract_step(skill_text, 2)
-    assert "scan-only" in step2 or "dry-run" in step2
+    assert "--scan" in step2 or "dry-run" in step2
 
 
 # --- Step 3: Scanning ---
@@ -224,7 +224,7 @@ def test_step6_outputs_report(skill_text):
 
 def test_step6_handles_three_modes(skill_text):
     step6 = _extract_step(skill_text, 6)
-    assert "scan-only" in step6
+    assert "--scan" in step6
     assert "dry-run" in step6
 
 
@@ -278,3 +278,39 @@ def test_ci_module_generates_workflow(skill_text):
 
 def test_ci_module_confirms_before_push(skill_text):
     assert "CI-4" in skill_text or "确认" in skill_text
+
+
+# --- Report file ---
+
+def test_step6_generates_report_file(skill_text):
+    """Step 6 应包含报告文件生成逻辑"""
+    step6 = _extract_step(skill_text, 6)
+    assert "safe-publish-report-" in step6, "Step 6 must define report file path pattern"
+    assert ".md" in step6
+    assert ".gitignore" in step6, "Step 6 must update .gitignore with report pattern"
+
+
+def test_step1_announces_report_file(skill_text):
+    """Step 1 应预告报告文件位置和安全提示"""
+    step1 = _extract_step(skill_text, 1)
+    assert "safe-publish-report-" in step1, "Step 1 must mention report file path"
+    assert "gitignore" in step1.lower() or "不要" in step1 or "提交" in step1, \
+        "Step 1 must warn about not committing the report"
+
+
+def test_report_content_differs_by_mode(skill_text):
+    """报告内容应按模式区分"""
+    step6 = _extract_step(skill_text, 6)
+    assert "--scan" in step6, "Step 6 must describe --scan mode report"
+    assert "--dry-run" in step6, "Step 6 must describe --dry-run mode report"
+
+
+def test_report_filename_has_timestamp(skill_text):
+    """报告文件名应包含时间戳，避免多轮扫描覆盖"""
+    assert "YYYYMMDD" in skill_text and "HHMM" in skill_text, \
+        "Report filename must include timestamp pattern (YYYYMMDD-HHMM)"
+
+
+def test_no_scan_only_references(skill_text):
+    """不应残留 --scan-only 旧参数名"""
+    assert "--scan-only" not in skill_text, "Found deprecated --scan-only, should be --scan"
