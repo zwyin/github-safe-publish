@@ -857,9 +857,9 @@
 
 | 字符串 | 熵值 | 判定 |
 |--------|------|------|
-| `AKIAIOSFODNN7EXAMPLE` | ~3.2 | WARNING（低熵，可能是示例） |
-| `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` | ~4.0 | WARNING |
-| `wJalrXUtnFEMI/K7MDENG/bPxRfiCY+realkeyXyz` | ~4.6 | CRITICAL |
+| `AKIAIOSFODNN7EXAMPLE` | ~3.7 | WARNING（低熵，可能是示例） |
+| `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` | ~4.7 | WARNING（接近阈值但含重复模式） |
+| `wJalrXUtnFEMI/K7MDENG/bPxRfiCY+realkeyXyz` | ~4.9 | CRITICAL |
 
 ---
 
