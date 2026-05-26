@@ -6,6 +6,7 @@ description: |
   （确定性规则 + AI 语义）、自动修复、备份回滚、仓库创建、SEO 优化。
   Use when: "push to github", "publish to github", "开源", "推送到 GitHub",
   "create github repo", "发布到 github"。
+argument-hint: "[--scan-only] [--dry-run] [--seo] [--ci]"
 triggers:
   - push to github
   - publish to github
