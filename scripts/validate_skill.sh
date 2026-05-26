@@ -4,11 +4,13 @@ set -euo pipefail
 echo "=== github-safe-publish skill validation ==="
 echo ""
 
-echo "1. Running pytest..."
+SKILL="skills/github-safe-publish/SKILL.md"
+version=$(grep '^version:' "$SKILL" | head -1 | awk '{print $2}' | tr -d '"')
+echo "Version: $version"
+echo ""
 if python3 -m pytest tests/ -v --tb=short; then
     echo ""
     echo "2. Checking file structure..."
-    SKILL="skills/github-safe-publish/SKILL.md"
     RULES="docs/scanning-rules.md"
 
     for f in "$SKILL" "$RULES" "CLAUDE.md" "LICENSE" "README.md" ".claude-plugin/plugin.json" ".claude-plugin/marketplace.json" "CHANGELOG.md" ".github/workflows/test.yml" "scripts/release.sh" "scripts/convert.sh" "scripts/validate_skill.sh"; do
