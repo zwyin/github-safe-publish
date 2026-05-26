@@ -1,7 +1,7 @@
 # github-safe-publish v2 设计文档
 
 日期：2026-05-25
-状态：Final (v0.6.0 delivered)
+状态：Final (v0.6.1 delivered)
 
 ## 1. 项目定位
 
@@ -435,11 +435,16 @@ github-safe-publish/
 │   └── superpowers/specs/          # 设计文档
 ├── scripts/
 │   ├── validate_skill.sh           # Skill 结构验证
-│   └── release.sh                  # 版本发布自动化
+│   ├── release.sh                  # 版本发布自动化
+│   └── convert.sh                  # 多平台格式转换
 ├── tests/
 │   ├── test_skill_structure.py     # SKILL.md 结构检查
 │   ├── test_scanning_rules.py      # 扫描规则完整性验证
-│   └── test_plugin_metadata.py     # plugin.json / marketplace.json 验证
+│   ├── test_detection.py           # 134/135 规则端到端检测测试
+│   ├── test_entropy.py             # Shannon 熵值计算验证
+│   ├── test_convert.py             # convert.sh 多平台输出验证
+│   ├── test_plugin_metadata.py     # plugin.json / marketplace.json + 版本同步验证
+│   └── test_conftest.py            # conftest 辅助函数边界测试
 ├── README.md
 ├── CHANGELOG.md
 ├── CLAUDE.md                       # 项目内部规则
@@ -453,12 +458,15 @@ github-safe-publish/
 
 ### 测试策略
 
-专项验证脚本，覆盖：
+专项验证脚本 + pytest 测试套件（235 tests, 99% coverage），覆盖：
 
 1. **SKILL.md 结构检查**：frontmatter 完整性、步骤编号连续性、参数定义一致性
-2. **扫描规则验证**：规则数量、正则有效性、维度覆盖完整性
-3. **插件元数据验证**：plugin.json / marketplace.json 格式和字段完整性
-4. **版本同步验证**：6 处版本号一致性
+2. **扫描规则验证**：规则数量（135 guard）、正则有效性、维度覆盖完整性
+3. **规则检测测试**：134/135 规则端到端验证（从 scanning-rules.md 提取正则，验证能匹配目标模式）
+4. **熵值计算验证**：Shannon entropy 阈值 4.5 与示例 key 校准
+5. **多平台转换验证**：convert.sh 输出的 Cursor/Windsurf/OpenCode 格式
+6. **插件元数据验证**：plugin.json / marketplace.json 格式和字段完整性
+7. **版本同步验证**：5/6 处版本号一致性（SKILL.md、plugin.json、marketplace.json、README badge、CHANGELOG header）
 
 ## 7. 不做的事（一期）
 

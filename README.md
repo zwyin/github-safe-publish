@@ -1,6 +1,6 @@
 # GitHub Safe Publish
 
-[![version](https://img.shields.io/badge/version-0.6.1-blue)](skills/github-safe-publish/SKILL.md) [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE) [![tests](https://img.shields.io/badge/tests-225%20passing-brightgreen)](tests/) [![platform](https://img.shields.io/badge/platform-Claude%20Code-purple)](https://claude.ai/code)
+[![version](https://img.shields.io/badge/version-0.6.1-blue)](skills/github-safe-publish/SKILL.md) [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE) [![tests](https://img.shields.io/badge/tests-235%20passing-brightgreen)](tests/) [![platform](https://img.shields.io/badge/platform-Claude%20Code-purple)](https://claude.ai/code)
 
 Safely publish local Git projects to GitHub public repositories with two-layer desensitization scanning (135 deterministic rules + AI semantic analysis), auto-fix, backup, and end-to-end publishing workflow.
 
@@ -115,7 +115,7 @@ github-safe-publish/
 ├── scripts/
 │   ├── release.sh           # Version bump + tag
 │   └── validate_skill.sh    # One-click validation
-├── tests/                   # 225 tests
+├── tests/                   # 235 tests
 ├── CHANGELOG.md
 ├── CLAUDE.md
 └── LICENSE
