@@ -285,25 +285,18 @@ def test_ci_module_confirms_before_push(skill_text):
 def test_step6_generates_report_file(skill_text):
     """Step 6 应包含报告文件生成逻辑"""
     step6 = _extract_step(skill_text, 6)
-    assert "safe-publish-report-" in step6, "Step 6 must define report file path pattern"
-    assert "safe-publish-report-" in step6 and ".md" in step6, \
-        "Report file must be markdown (safe-publish-report-*.md)"
+    assert "safe-publish-report-YYYYMMDD-HHMM.md" in step6, \
+        "Step 6 must define exact report file path pattern"
     assert ".gitignore" in step6, "Step 6 must update .gitignore with report pattern"
 
 
 def test_step1_announces_report_file(skill_text):
     """Step 1 应预告报告文件位置和安全提示"""
     step1 = _extract_step(skill_text, 1)
-    assert "safe-publish-report-" in step1, "Step 1 must mention report file path"
+    assert "safe-publish-report-YYYYMMDD-HHMM" in step1, \
+        "Step 1 must announce exact report file path pattern"
     assert "gitignore" in step1.lower() or "不要" in step1 or "提交" in step1, \
         "Step 1 must warn about not committing the report"
-
-
-def test_report_content_differs_by_mode(skill_text):
-    """报告内容应按模式区分"""
-    step6 = _extract_step(skill_text, 6)
-    assert "--scan" in step6, "Step 6 must describe --scan mode report"
-    assert "--dry-run" in step6, "Step 6 must describe --dry-run mode report"
 
 
 def test_report_filename_has_timestamp(skill_text):

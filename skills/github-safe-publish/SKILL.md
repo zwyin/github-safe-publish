@@ -245,7 +245,7 @@ node_modules/
 
 在任何修改之前创建回滚点。**仅在完整流程模式下执行**（`--scan` 和 `--dry-run` 跳过此步骤）。
 
-跳过原因：`--scan` 和 `--dry-run` 设计为纯只读操作，不修改任何文件或分支，子 agent 不被授予写入工具权限，因此无需备份。
+跳过原因：`--scan` 和 `--dry-run` 设计为纯只读操作，不修改任何源文件或分支，子 agent 不被授予写入工具权限，因此无需备份。唯一例外：Step 6.3 的报告文件写入（输出到项目根目录）和 `.gitignore` 追加，不涉及源代码变更。
 
 ### 2.1 创建流程
 
@@ -907,8 +907,8 @@ Layer 2 (AI Semantic):
   Additional findings: N items
 
 Detailed findings:
-  [CRITICAL] file:line | rule-name | matched content (redacted)
-  [WARNING]  file:line | rule-name | matched content (redacted)
+  [CRITICAL] file:line | rule-name | ma...ed (前后各显示3字符，中间用...替代)
+  [WARNING]  file:line | rule-name | ma...ed (前后各显示3字符，中间用...替代)
   ...
 
 Recommendation: Fix CRITICAL items before publishing. Run without --scan to auto-fix.

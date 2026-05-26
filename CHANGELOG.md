@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Report file persistence: scan results saved to `safe-publish-report-YYYYMMDD-HHMM.md` in project root (auto-added to .gitignore)
+- Step 1 now announces report file path and warns about sensitive content before scanning starts
 - `docs/README_zh.md`: Chinese documentation with competitive comparison, 6 dimensions detail, test coverage table
 - "About the 135 Rules" section in both READMEs: explains 6-dimension vs single-dimension comparison with TruffleHog/Gitleaks
 - Installation instructions updated: `/plugin marketplace add` + `/plugin install` commands, multi-platform table (Cursor/Windsurf/OpenCode)
@@ -18,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Renamed `--scan-only` to `--scan` for clarity. Old flag name no longer recognized
+- Clarified `--scan` vs `--dry-run` difference: "what's wrong" vs "what's wrong + how to fix"
 - `scripts/release.sh`: replaced `sed -i.bak` with `perl -pi -e` for macOS compatibility
 - `scripts/validate_skill.sh`: displays version at startup
 - `.github/workflows/test.yml`: test count floor (230) + coverage gate (95%)
