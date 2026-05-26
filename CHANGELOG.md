@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `.github/workflows/test.yml`: test count floor (230) + coverage gate (95%)
 - `README.md` test badge updated to 235 passing
 - Expanded version sync check to 5/6 locations (README badge, CHANGELOG header)
+- Test count: 235 → 240 (added report file persistence tests)
 
 ## [0.6.1] - 2026-05-26
 
