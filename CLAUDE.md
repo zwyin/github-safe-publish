@@ -46,6 +46,7 @@ scripts/validate_skill.sh
 | test_convert | ≥ 90% | 100% |
 | test_plugin_metadata | ≥ 90% | 100% |
 | test_conftest | ≥ 90% | 100% |
+| test_entropy | ≥ 90% | 100% |
 
 ### 规则检测覆盖
 
