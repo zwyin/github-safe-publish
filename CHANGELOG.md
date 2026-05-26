@@ -4,11 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-05-26
+
+### Added
+
+- `docs/README_zh.md`: Chinese documentation with competitive comparison, 6 dimensions detail, test coverage table
+- "About the 135 Rules" section in both READMEs: explains 6-dimension vs single-dimension comparison with TruffleHog/Gitleaks
+- Installation instructions updated: `/plugin marketplace add` + `/plugin install` commands, multi-platform table (Cursor/Windsurf/OpenCode)
+
+### Fixed
+
+- Corrected entropy example values in `docs/scanning-rules.md` (3.2→3.7, 4.0→4.7, 4.6→4.9)
+
+### Changed
+
+- `scripts/release.sh`: replaced `sed -i.bak` with `perl -pi -e` for macOS compatibility
+- `scripts/validate_skill.sh`: displays version at startup
+- `.github/workflows/test.yml`: test count floor (230) + coverage gate (95%)
+- `README.md` test badge updated to 235 passing
+- Expanded version sync check to 5/6 locations (README badge, CHANGELOG header)
+
 ## [0.6.1] - 2026-05-26
 
 ### Added
 
-- Detection tests expanded from 25 to 134 rules (134/135 = 99% rule coverage, 225 total tests)
+- Shannon entropy calculation tests (9 tests in `tests/test_entropy.py`)
+- Detection tests expanded from 25 to 134 rules (134/135 = 99% rule coverage)
+- Test suite expanded from 3 to 7 files (235 total tests, 99% coverage)
+- CI regression guards: test count floor, coverage gate, version sync check
 - New test helper `_detects_file()` for FILE dimension rules (uses `模式` field)
 - Coverage: GitHub tokens (app/fine-grained/OAuth/refresh), cloud providers (GCP/DigitalOcean/Vercel/Netlify/Supabase/Fly.io/Deno/Scaleway), AI providers (Anthropic admin/HuggingFace/Perplexity/xAI/Replicate/DeepSeek), DevOps (GitLab deploy/runner/CICD/feed/K8s/Databricks/PlanetScale/Pulumi/Linear), SaaS (Notion/Shopify/Sendinblue/RubyGems/Postman/Artifactory), crypto (private key/JWT/K8s secret), PII (Chinese ID/US SSN/credit card/bank card/password), infrastructure (internal IP/hostname/path/URL/VPN), FILE dimension (12 rules), GIT history (3 rules)
 
