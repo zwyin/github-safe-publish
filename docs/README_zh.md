@@ -117,7 +117,11 @@ Step 6: 验证 + 输出报告
 
 ## 安装
 
-### Claude Code（推荐）
+### 方式 1：Browse UI
+
+选择 **Browse and install plugins** → 选择 **github-safe-publish** → 选择 **Install now**
+
+### 方式 2：Marketplace 安装
 
 ```bash
 # 1. 添加 marketplace
@@ -127,9 +131,25 @@ Step 6: 验证 + 输出报告
 /plugin install github-safe-publish@github-safe-publish
 ```
 
-安装后直接在任意项目中使用 `/github-safe-publish` 命令。
+### 方式 3：让 Agent 安装
 
-### 手动安装
+```
+Please install github-safe-publish from github.com/zwyin/github-safe-publish
+```
+
+### 方式 4：npx 快速安装
+
+```bash
+npx skills add zwyin/github-safe-publish
+```
+
+### 方式 5：ClawHub
+
+```bash
+clawhub install github-safe-publish
+```
+
+### 方式 6：手动安装
 
 ```bash
 git clone https://github.com/zwyin/github-safe-publish.git

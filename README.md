@@ -82,7 +82,11 @@ The real differentiator isn't rule count — it's what happens **after** detecti
 
 ## Installation
 
-### Claude Code (recommended)
+### Option 1: Browse UI
+
+Select **Browse and install plugins** → Select **github-safe-publish** → Select **Install now**
+
+### Option 2: Marketplace Install
 
 ```bash
 # 1. Add marketplace
@@ -92,9 +96,25 @@ The real differentiator isn't rule count — it's what happens **after** detecti
 /plugin install github-safe-publish@github-safe-publish
 ```
 
-After installation, use `/github-safe-publish` in any project.
+### Option 3: Ask the Agent
 
-### Manual
+```
+Please install github-safe-publish from github.com/zwyin/github-safe-publish
+```
+
+### Option 4: Quick Install (npx)
+
+```bash
+npx skills add zwyin/github-safe-publish
+```
+
+### Option 5: ClawHub
+
+```bash
+clawhub install github-safe-publish
+```
+
+### Option 6: Manual
 
 ```bash
 git clone https://github.com/zwyin/github-safe-publish.git
