@@ -6,6 +6,8 @@ Safely publish local Git projects to GitHub public repositories with two-layer d
 
 A [Claude Code](https://claude.ai/code) skill / plugin.
 
+[中文文档](docs/README_zh.md)
+
 ## Why
 
 Pushing a local project to a public GitHub repo risks leaking secrets, PII, internal infrastructure details, and other sensitive data. Existing tools like Gitleaks and TruffleHog detect secrets but don't fix them or handle the full publishing workflow.
