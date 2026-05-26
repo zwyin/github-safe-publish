@@ -286,7 +286,8 @@ def test_step6_generates_report_file(skill_text):
     """Step 6 应包含报告文件生成逻辑"""
     step6 = _extract_step(skill_text, 6)
     assert "safe-publish-report-" in step6, "Step 6 must define report file path pattern"
-    assert ".md" in step6
+    assert "safe-publish-report-" in step6 and ".md" in step6, \
+        "Report file must be markdown (safe-publish-report-*.md)"
     assert ".gitignore" in step6, "Step 6 must update .gitignore with report pattern"
 
 
