@@ -1,3 +1,6 @@
+> **This repo has been merged into [ruyi-skills](https://github.com/zwyin/ruyi-skills) and is no longer maintained here.**
+> For the latest version, install from ruyi-skills: `skills/ruyi-github-safe-publish/`
+
 # GitHub Safe Publish
 
 [![version](https://img.shields.io/badge/version-0.7.0-blue)](skills/github-safe-publish/SKILL.md) [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE) [![tests](https://img.shields.io/badge/tests-240%20passing-brightgreen)](tests/) [![platform](https://img.shields.io/badge/platform-Claude%20Code-purple)](https://claude.ai/code)
